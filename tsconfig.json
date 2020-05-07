@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "lib": ["es6", "dom"],
+    "noImplicitAny": true,
+    "noImplicitThis": false,
+    "outFile": "build/patcher.user.js",
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+  },
+  "include": [
+    "user_script.ts",
+    "src/style.ts",
+    "src/types.d.ts",
+    "src/common.ts",
+    "src/action.ts",
+    "src/jenkins.ts",
+    "src/baseline.ts",
+    "src/version_select.ts",
+    "src/child_builds.ts",
+    "src/old_builds.ts",
+    "src/fixes.ts",
+    "src/hotfix.ts",
+    "src/zendesk.ts",
+    "src/support_qa.ts",
+    "src/security.ts",
+    "src/main.ts"
+  ]
+}
