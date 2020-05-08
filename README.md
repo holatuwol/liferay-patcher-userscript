@@ -1,5 +1,6 @@
 ## Patcher Read-Only Views Links
 
+* **Loop**: https://loop.liferay.com/home/-/loop/feed/18982411
 * **Script Install**: https://raw.githubusercontent.com/holatuwol/liferay-faster-deploy/master/userscripts/patcher.user.js
 * **Source**: https://github.com/holatuwol/liferay-patcher-userscript
 
