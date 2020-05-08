@@ -1,6 +1,7 @@
 ## Patcher Read-Only Views Links
 
-https://raw.githubusercontent.com/holatuwol/liferay-faster-deploy/master/userscripts/patcher.user.js
+* **Script Install**: https://raw.githubusercontent.com/holatuwol/liferay-faster-deploy/master/userscripts/patcher.user.js
+* **Source**: https://github.com/holatuwol/liferay-patcher-userscript
 
 When working with existing fixes and builds, the script does the following:
 

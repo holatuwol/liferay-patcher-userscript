@@ -35,10 +35,6 @@ function renderMissingSecurityFixes() : void {
   var tableRows = missingTicketList.map((x, i) => (x.length == 0) ? '' : '<tr><th class="nowrap">SEV-' + i + '</th><td>' + x.join(', ') + '</td></tr>');
   var tableRowsHTML = tableRows.join('');
 
-  if (tableRowsHTML.length == 0) {
-    return;
-  }
-
   var container = document.createElement('div');
   container.classList.add('control-group', 'input-text-wrapper');
 
@@ -49,7 +45,13 @@ function renderMissingSecurityFixes() : void {
   container.appendChild(label);
 
   var tableContainer = document.createElement('span');
-  tableContainer.innerHTML = '<table class="table table-bordered table-hover"><tbody class="table-data">' + tableRowsHTML + '</tbody></table>';
+
+  if (tableRowsHTML.length == 0) {
+    tableContainer.innerHTML = 'none';
+  }
+  else {
+    tableContainer.innerHTML = '<table class="table table-bordered table-hover"><tbody class="table-data">' + tableRowsHTML + '</tbody></table>';
+  }
 
   container.appendChild(tableContainer);
 
