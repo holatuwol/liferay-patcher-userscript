@@ -14,6 +14,10 @@ When working with existing fixes and builds, the script does the following:
 
 * When viewing an existing build, the links to Jenkins take you to a page which gives you a summary of the build (how long it took, etc.), but usually I'm only clicking on the link to see why the build failed. To address that, this script updates the link so that it takes you to the console output (consoleText).
 
+* When viewing an existing build, it takes an extra, non-obvious click to see the QA automation testing status. The script displays the QA automation testing status right under the build link.
+
+* In light of the recent security issues, I thought it would be nice to know if a customer is missing security fixes, before we deliver the fix, so we can proactively ask them whether they received the security notification and whether they would like to install it. Towards that end, I've added a "Missing Security Fixes" section below the list of fixes that are included in the build.
+
 When adding new fixes and builds, the script does the following:
 
 * When creating a new fix or build, the large number of options in that single product version drop down feels clunky. To address that, I've added a new drop down to choose from a much shorter list of Liferay versions, and auto-selects the "DXP 7.x" product version equivalent. Once this has been auto-selected, updates the sort order of the project versions (baselines) to be in numeric order (1, 2, 3), rather than alphabetical order (1, 10, 11, ..., 2, 20, 21, ..., 3) to make it easier to find the latest baseline.
@@ -21,6 +25,8 @@ When adding new fixes and builds, the script does the following:
 * When creating a new build using the "Use as Build Template", Patcher doesn't automatically select the project version (only the product version), which can get disorienting since we have a large number of project versions. To make "Use as Build Template" more usable, the script updates the link so that the script knows how to auto-select the project version.
 
 Some additional visual tweaks include the following:
+
+* The script adds color-coding to the list of QA builds so that they are visually grouped by version, since it can be easier to test multiple builds of the same version rather than switch between versions all the time.
 
 * Since we've added the marketplace feature to patcher, all of the drop-down selects are way too small to show tag names and application names, so this script adds a style to remove the fixed width of 200 pixels on the product and project selects.
 
