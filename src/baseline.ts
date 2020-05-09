@@ -5,20 +5,33 @@
 var fixPackMetadata = <FixPackMetadata | null> null;
 
 function getFixPack() : FixPackMetadata | null {
-  var projectNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
+  var projectNode = <HTMLElement> querySelector('patcherProjectVersionId');
+  var versionId = '';
+  var baseTag = '';
 
-  if (projectNode.selectedIndex == -1) {
-    return null;
+  if (projectNode.tagName.toLowerCase() == 'input') {
+    var projectInputElement = <HTMLInputElement> projectNode;
+    versionId = projectInputElement.value;
+
+    var container = <HTMLElement> projectNode.parentElement;
+    var versionNode = <HTMLAnchorElement> container.querySelector('a');
+    baseTag = versionNode.textContent || '';
   }
+  else {
+    var projectSelectNode = <HTMLSelectElement> projectNode;
 
-  var versionElement = <HTMLOptionElement> projectNode.options[projectNode.selectedIndex];
-  var versionId = versionElement.value;
+    if (projectSelectNode.selectedIndex == -1) {
+      return null;
+    }
+
+    var versionElement = <HTMLOptionElement> projectSelectNode.options[projectSelectNode.selectedIndex];
+    versionId = versionElement.value;
+    baseTag = (versionElement.textContent || '').trim();
+  }
 
   if (fixPackMetadata && fixPackMetadata.versionId == versionId) {
     return fixPackMetadata;
   }
-
-  var baseTag = (versionElement.textContent || '').trim();
 
   if (baseTag.indexOf('6.2') == 0) {
     fixPackMetadata = get62FixPack(versionId);
