@@ -1,15 +1,36 @@
-function renderMissingSecurityFixes() : void {
-  var lsvTickets = JSON.parse(this.responseText);
+function renderMissingSecurityFixes(
+  buildNameNode : HTMLElement,
+  lsvTickets : any
+) : void {
+  var fixPack = getFixPack();
+
+  if (!fixPack) {
+    return;
+  }
 
   var projectNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
   var projectParentElement = <HTMLElement> projectNode.parentElement;
-  var tagName = getFixPack().tag;
+  var tagName = fixPack.tag;
 
-  var buildNumber = tagName.indexOf('portal-') == 0 ? '6210' : tagName.substring(tagName.lastIndexOf('-') + 1);
+  var buildNumber = '';
+  var liferayVersion = getLiferayVersion(tagName);
 
-  var buildNameNode = <HTMLInputElement> querySelector('patcherBuildName');
+  if (tagName.indexOf('portal-') == 0) {
+    buildNumber = '6210';
+  }
+  else {
+    buildNumber = '' + Math.floor(liferayVersion / 1000);
+  }
 
-  var buildName = buildNameNode.value.split(',');
+  var buildName = [];
+
+  if (buildNameNode.tagName.toLowerCase() == 'select') {
+    buildName = (<HTMLTextAreaElement> buildNameNode).value.split(',');
+  }
+  else {
+    buildName = (<HTMLInputElement> buildNameNode).value.split(',');
+  }
+
   var ticketList = new Set(buildName.map(x => x.trim()));
   var missingTicketList = <Array<Array<string>>> [[],[],[],[]];
 
@@ -19,7 +40,7 @@ function renderMissingSecurityFixes() : void {
     fixPackNumber = parseInt(tagName.substring('portal-'.length));
   }
   else {
-    fixPackNumber = parseInt(tagName.substring(tagName.indexOf('-', 'fix-pack-'.length) + 1, tagName.lastIndexOf('-')));
+    fixPackNumber = liferayVersion % 1000;
   }
 
   for (var ticketName in lsvTickets) {
@@ -35,7 +56,14 @@ function renderMissingSecurityFixes() : void {
   var tableRows = missingTicketList.map((x, i) => (x.length == 0) ? '' : '<tr><th class="nowrap">SEV-' + i + '</th><td>' + x.join(', ') + '</td></tr>');
   var tableRowsHTML = tableRows.join('');
 
-  var container = document.createElement('div');
+  var container = document.getElementById('missing-security-fixes');
+
+  if (container) {
+    container.remove();
+  }
+
+  container = document.createElement('div');
+  container.setAttribute('id', 'missing-security-fixes');
   container.classList.add('control-group', 'input-text-wrapper');
 
   var label = document.createElement('label');
@@ -66,16 +94,23 @@ function showMissingSecurityFixes() {
     return;
   }
 
-  if (document.location.pathname.indexOf('/-/osb_patcher/builds/create') != -1) {
-    return;
-  }
+  var buildNameNode = <HTMLElement> querySelector('patcherBuildName');
 
   var xhr = new XMLHttpRequest();
 
   var lsvFixedInURL = 'https://s3-us-west-2.amazonaws.com/mdang.grow/lsv_fixedin.json';
 
   xhr.open('GET', lsvFixedInURL);
-  xhr.onload = renderMissingSecurityFixes.bind(xhr);
+  xhr.onload = function() {
+    var lsvTickets = JSON.parse(this.responseText);
+    var renderMissingSecurityFixesListener = renderMissingSecurityFixes.bind(xhr, buildNameNode, lsvTickets);
 
+    buildNameNode.addEventListener('blur', renderMissingSecurityFixesListener);
+
+    var projectVersionNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
+    projectVersionNode.addEventListener('change', renderMissingSecurityFixesListener);
+
+    renderMissingSecurityFixesListener();
+  }
   xhr.send(null);
 }

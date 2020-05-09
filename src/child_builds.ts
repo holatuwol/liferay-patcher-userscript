@@ -21,7 +21,8 @@ function getChildBuildHash(
   var baseTag = build.branchName;
 
   if (baseTag.indexOf('6.2') == 0) {
-    baseTag = getFixPack().tag;
+    var fixPack = <FixPackMetadata> getFixPack();
+    baseTag = fixPack.tag;
   }
 
   var compareLink = 'https://github.com/liferay/liferay-portal-ee/compare/' + baseTag + '...fix-pack-fix-' + build.patcherFixId;

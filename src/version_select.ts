@@ -13,7 +13,7 @@ function addProductVersionFilter() : void {
   if (productVersionSelect.disabled) {
     var projectVersionSelect = <HTMLSelectElement> querySelector('patcherProjectVersionId');
 
-    var metadata = getFixPack();
+    var metadata = <FixPackMetadata> getFixPack();
     var patcherTagName = metadata.tag;
     var branchName = metadata.name;
 
@@ -150,6 +150,10 @@ function updateProjectVersionOrder() : void {
   for (var i = 0; i < sortedOptions.length; i++) {
     projectVersionSelect.appendChild(sortedOptions[i]);
   }
+
+  var event = document.createEvent('HTMLEvents');
+  event.initEvent('change', false, true);
+  projectVersionSelect.dispatchEvent(event);
 }
 
 /**

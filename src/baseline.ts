@@ -4,28 +4,40 @@
 
 var fixPackMetadata = <FixPackMetadata | null> null;
 
-function getFixPack() : FixPackMetadata {
-  if (fixPackMetadata) {
+function getFixPack() : FixPackMetadata | null {
+  var projectNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
+
+  if (projectNode.selectedIndex == -1) {
+    return null;
+  }
+
+  var versionElement = <HTMLOptionElement> projectNode.options[projectNode.selectedIndex];
+  var versionId = versionElement.value;
+
+  if (fixPackMetadata && fixPackMetadata.versionId == versionId) {
     return fixPackMetadata;
   }
 
-  var projectNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
-  var baseTag = (projectNode.options[projectNode.selectedIndex].textContent || '').trim();
+  var baseTag = (versionElement.textContent || '').trim();
 
   if (baseTag.indexOf('6.2') == 0) {
-    fixPackMetadata = get62FixPack();
+    fixPackMetadata = get62FixPack(versionId);
   }
   else {
     fixPackMetadata = {
       'tag': baseTag,
-      'name': baseTag
-    }
+      'name': baseTag,
+      'versionId': versionId
+    };
   }
 
   return <FixPackMetadata> fixPackMetadata;
 }
 
-function get62FixPack() : FixPackMetadata {
+function get62FixPack(
+  versionId : string
+) : FixPackMetadata {
+
   var fixPackListURL = 'https://patcher.liferay.com/group/guest/patching/-/osb_patcher/fix_packs?' + getQueryString({delta: 200});
 
   var oldNode = <HTMLInputElement | null> querySelector('patcherFixName');
@@ -94,7 +106,8 @@ function get62FixPack() : FixPackMetadata {
 
   return {
     'tag': baseTag,
-    'name': fixPackName
+    'name': fixPackName,
+    'versionId': versionId
   };
 }
 
@@ -110,7 +123,13 @@ function replaceBranchName() {
     return;
   }
 
-  var baseTag = getFixPack().tag;
+  var fixPack = getFixPack();
+
+  if (!fixPack) {
+    return;
+  }
+
+  var baseTag = fixPack.tag;
   var branchName = branchNode.value;
 
   var gitRemoteURL = gitRemoteNode.value;

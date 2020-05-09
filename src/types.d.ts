@@ -13,6 +13,7 @@ declare function exportFunction(gmFunction: any, window: UnsafeWindow) : any;
 interface FixPackMetadata {
 	tag: string;
 	name: string;
+	versionId: string;
 }
 
 interface UnsafeWindow {
