@@ -24,7 +24,7 @@ var applyPatcherCustomizations = function() {
 };
 
 if (exportFunction) {
-  applyPatcherCustomizations = exportFunction(applyPatcherCustomizations, unsafeWindow);
+  applyPatcherCustomizations = exportFunction(applyPatcherCustomizations, window);
 }
 
 AUI().ready(applyPatcherCustomizations);

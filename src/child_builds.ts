@@ -64,13 +64,13 @@ function replaceGitHashes(
     var childBuildFunction = joinFunction.bind(null, childBuildsMetadata[i]);
 
     if (exportFunction) {
-      childBuildFunction = exportFunction(childBuildFunction, unsafeWindow);
+      childBuildFunction = exportFunction(childBuildFunction, window);
     }
 
     var childBuildArguments = { id: childBuildsMetadata[i].buildId };
 
     if (cloneInto) {
-      childBuildArguments = cloneInto(childBuildArguments, unsafeWindow);
+      childBuildArguments = cloneInto(childBuildArguments, window);
     }
 
     Liferay.Service(

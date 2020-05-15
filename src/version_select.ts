@@ -184,7 +184,7 @@ function updateProductVersionSelect() {
 
   if (option) {
     option.selected = true;
-    unsafeWindow[ns + 'productVersionOnChange'](option.value);
+    _1_WAR_osbpatcherportlet_productVersionOnChange(option.value);
     setTimeout(updateProjectVersionOrder, 500);
   }
 }
