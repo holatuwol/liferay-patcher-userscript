@@ -35,7 +35,7 @@ function replaceHotfixLink(target : string) : void {
     }
 
     if (exportFunction) {
-      buildMetadataCallback = exportFunction(buildMetadataCallback, window);
+      buildMetadataCallback = exportFunction(buildMetadataCallback, unsafeWindow);
     }
 
     var buildId = document.location.pathname.substring(document.location.pathname.lastIndexOf('/') + 1);
@@ -45,7 +45,7 @@ function replaceHotfixLink(target : string) : void {
     };
 
     if (cloneInto) {
-      buildMetadataArguments = cloneInto(buildMetadataArguments, window);
+      buildMetadataArguments = cloneInto(buildMetadataArguments, unsafeWindow);
     }
 
     Liferay.Service(

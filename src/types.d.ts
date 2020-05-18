@@ -18,6 +18,7 @@ interface BuildMetadata {
 
 declare function cloneInto(gmObject: any, window: Window) : any;
 declare function exportFunction(gmFunction: any, window: Window) : any;
+declare var unsafeWindow : globals | Window;
 
 interface FixPackMetadata {
 	tag: string;
