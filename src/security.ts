@@ -1,19 +1,17 @@
-function renderMissingSecurityFixes(
+function getMissingTicketList(
   buildNameNode : HTMLElement,
   lsvTickets : any
-) : void {
+) : Array<Array<string>> {
   var fixPack = getFixPack();
 
   if (!fixPack) {
-    return;
+    return [];
   }
 
-  var projectNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
-  var projectParentElement = <HTMLElement> projectNode.parentElement;
   var tagName = fixPack.tag;
+  var liferayVersion = getLiferayVersion(tagName);
 
   var buildNumber = '';
-  var liferayVersion = getLiferayVersion(tagName);
 
   if (tagName.indexOf('portal-') == 0) {
     buildNumber = '6210';
@@ -45,26 +43,21 @@ function renderMissingSecurityFixes(
 
   for (var ticketName in lsvTickets) {
     if (!ticketList.has(ticketName) && lsvTickets[ticketName][buildNumber] && lsvTickets[ticketName][buildNumber] > fixPackNumber) {
-      var lsvNumber = lsvTickets[ticketName]['lsv'];
       var severity = lsvTickets[ticketName]['sev'] || 3;
-
-      var ticketLink = getTicketLink('', ticketName, lsvNumber ? 'LSV-' + lsvNumber : ticketName);
-      missingTicketList[severity].push(ticketLink);
+      missingTicketList[severity].push(ticketName);
     }
   }
 
-  var tableRows = missingTicketList.map((x, i) => (x.length == 0) ? '' : '<tr><th class="nowrap">SEV-' + i + '</th><td>' + x.join(', ') + '</td></tr>');
+  return missingTicketList;
+}
+
+function addMissingSecurityFixesTable(
+  container : HTMLElement,
+  missingTicketList : Array<Array<string>>
+) : void {
+
+  var tableRows = missingTicketList.map((x, i) => (x.length == 0) ? '' : '<tr><th class="nowrap">SEV-' + i + '</th><td>' + x.map(x => getTicketLink('', x, x)).join(', ') + '</td></tr>');
   var tableRowsHTML = tableRows.join('');
-
-  var container = document.getElementById('missing-security-fixes');
-
-  if (container) {
-    container.remove();
-  }
-
-  container = document.createElement('div');
-  container.setAttribute('id', 'missing-security-fixes');
-  container.classList.add('control-group', 'input-text-wrapper');
 
   var label = document.createElement('label');
   label.classList.add('control-label');
@@ -82,6 +75,69 @@ function renderMissingSecurityFixes(
   }
 
   container.appendChild(tableContainer);
+}
+
+function addSecurityAdvisories(
+  container : HTMLElement,
+  lsvTickets : any,
+  missingTicketList : Array<Array<string>>
+) : void {
+
+  if ((missingTicketList[1].length == 0) && (missingTicketList[2].length == 0)) {
+    return;
+  }
+
+  var label = document.createElement('label');
+  label.classList.add('control-label');
+  label.textContent = 'Security Advisories';
+
+  container.appendChild(label);
+
+  var securityAdvisoryLSVList = missingTicketList[1].concat(missingTicketList[2]);
+
+  var lsvList = document.createElement('ul');
+
+  for (var i = 0; i < securityAdvisoryLSVList.length; i++) {
+    var ticketName = securityAdvisoryLSVList[i];
+    console.log(ticketName);
+
+    if (!('hc' in lsvTickets[ticketName])) {
+      continue;
+    }
+
+    var lsvNumber = lsvTickets[ticketName]['lsv'];
+    var helpCenterNumber = lsvTickets[ticketName]['hc'];
+
+    var listItem = document.createElement('li');
+    listItem.innerHTML = '<strong>LSV-' + lsvNumber + '</strong>: <a href="https://help.liferay.com/hc/articles/' + helpCenterNumber + '">https://help.liferay.com/hc/articles/' + helpCenterNumber + '</a>';
+    lsvList.appendChild(listItem);
+  }
+
+  container.append(lsvList);
+}
+
+function renderMissingSecurityFixes(
+  buildNameNode : HTMLElement,
+  lsvTickets : any
+) : void {
+
+  var projectNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
+  var projectParentElement = <HTMLElement> projectNode.parentElement;
+
+  var missingTicketList = getMissingTicketList(buildNameNode, lsvTickets);
+
+  var container = document.getElementById('security-advisory');
+
+  if (container) {
+    container.remove();
+  }
+
+  container = document.createElement('div');
+  container.setAttribute('id', 'security-advisory');
+  container.classList.add('control-group', 'input-text-wrapper');
+
+  addMissingSecurityFixesTable(container, missingTicketList);
+  addSecurityAdvisories(container, lsvTickets, missingTicketList);
 
   var accountElement = <HTMLElement> querySelector('patcherBuildAccountEntryCode');
   var accountParentElement = <HTMLElement> accountElement.parentElement;
