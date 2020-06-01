@@ -139,7 +139,16 @@ function renderMissingSecurityFixes(
   addMissingSecurityFixesTable(container, missingTicketList);
   addSecurityAdvisories(container, lsvTickets, missingTicketList);
 
-  var accountElement = <HTMLElement> querySelector('patcherBuildAccountEntryCode');
+  var accountElement = querySelector('patcherBuildAccountEntryCode');
+  if (!accountElement) {
+    var label = <HTMLElement> document.querySelector('label[for="' + ns + 'account-code"]');
+    accountElement = <HTMLElement | null> label.nextSibling;
+  }
+
+  if (!accountElement) {
+    return;
+  }
+
   var accountParentElement = <HTMLElement> accountElement.parentElement;
   var accountGrandParentElement = <HTMLElement> accountParentElement.parentElement;
   accountGrandParentElement.insertBefore(container, accountParentElement);
