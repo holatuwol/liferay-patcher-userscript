@@ -1,11 +1,11 @@
 function getMissingTicketList(
-  buildNameNode : HTMLElement,
   lsvTickets : any
 ) : Array<Array<string>> {
+
   var fixPack = getFixPack();
 
   if (!fixPack) {
-    return [];
+    return [[],[],[],[]];
   }
 
   var tagName = fixPack.tag;
@@ -19,6 +19,8 @@ function getMissingTicketList(
   else {
     buildNumber = '' + Math.floor(liferayVersion / 1000);
   }
+
+  var buildNameNode = <HTMLElement> querySelector('patcherBuildName');
 
   var buildName = [];
 
@@ -51,117 +53,94 @@ function getMissingTicketList(
   return missingTicketList;
 }
 
-function addMissingSecurityFixesTable(
-  container : HTMLElement,
-  missingTicketList : Array<Array<string>>
-) : void {
-
-  var tableRows = missingTicketList.map((x, i) => (x.length == 0) ? '' : '<tr><th class="nowrap">SEV-' + i + '</th><td>' + x.map(x => getTicketLink('', x, x)).join(', ') + '</td></tr>');
-  var tableRowsHTML = tableRows.join('');
-
-  var label = document.createElement('label');
-  label.classList.add('control-label');
-  label.textContent = 'Missing Security Fixes';
-
-  container.appendChild(label);
-
-  var tableContainer = document.createElement('span');
-
-  if (tableRowsHTML.length == 0) {
-    tableContainer.innerHTML = 'none';
-  }
-  else {
-    tableContainer.innerHTML = '<table class="table table-bordered table-hover"><tbody class="table-data">' + tableRowsHTML + '</tbody></table>';
-  }
-
-  container.appendChild(tableContainer);
-}
-
-function addSecurityAdvisories(
-  container : HTMLElement,
+function getMissingTicketTableRow(
   lsvTickets : any,
-  missingTicketList : Array<Array<string>>
-) : void {
+  missingTickets : Array<string>,
+  severity: number
+) : string {
 
-  if ((missingTicketList[1].length == 0) && (missingTicketList[2].length == 0)) {
-    return;
+  if (severity == 0) {
+    return '';
   }
 
-  var label = document.createElement('label');
-  label.classList.add('control-label');
-  label.textContent = 'Security Advisories';
+  var lsvList = [
+    '<tr><th class="nowrap">SEV-', severity, '</th><td>'
+  ];
 
-  container.appendChild(label);
-
-  var securityAdvisoryLSVList = missingTicketList[1].concat(missingTicketList[2]);
-
-  var lsvList = document.createElement('ul');
-
-  for (var i = 0; i < securityAdvisoryLSVList.length; i++) {
-    var ticketName = securityAdvisoryLSVList[i];
-
-    if (!('hc' in lsvTickets[ticketName])) {
-      continue;
+  if ((severity == 1) || (severity == 2)) {
+    if (missingTickets.length == 0) {
+      return '';
     }
 
-    var lsvNumber = lsvTickets[ticketName]['lsv'];
-    var helpCenterNumber = lsvTickets[ticketName]['hc'];
+    lsvList.push('<span class="compact">');
+    lsvList.push(missingTickets.map(x => getTicketLink('', x, x)).join(', '));
+    lsvList.push('</span>');
 
-    var listItem = document.createElement('li');
-    listItem.innerHTML = [
-      '<strong>LSV-', lsvNumber, ' / ', ticketName, '</strong>: ',
-      '<a href="https://help.liferay.com/hc/articles/', helpCenterNumber,
-      '">https://help.liferay.com/hc/articles/', helpCenterNumber, '</a>'
-    ].join('');
-    lsvList.appendChild(listItem);
+    lsvList.push(
+      '<div class="verbose" contenteditable onfocus="',
+      'var selection = window.getSelection();',
+      'var range = document.createRange();',
+      'range.selectNodeContents(this);',
+      'selection.removeAllRanges();',
+      'selection.addRange(range);',
+      '"><dl>');
+
+    for (var i = 0; i < missingTickets.length; i++) {
+      var ticketName = missingTickets[i];
+
+      if (!('hc' in lsvTickets[ticketName])) {
+        continue;
+      }
+
+      var lsvNumber = lsvTickets[ticketName]['lsv'];
+      var helpCenterNumber = lsvTickets[ticketName]['hc'];
+
+      lsvList.push(
+        '<dt>', 'LSV-', lsvNumber, ' / ', ticketName, '</dt><dd>',
+        '<a href="https://help.liferay.com/hc/articles/', helpCenterNumber,
+        '">https://help.liferay.com/hc/articles/', helpCenterNumber, '</a>', '</dd>');
+    }
+
+    lsvList.push('</dl></div>');
+  }
+  else {
+    lsvList.push(
+      '<span class="compact">', missingTickets.length,
+      missingTickets.length == 1 ? ' ticket' : ' tickets',
+      '</span><span class="verbose">',
+      missingTickets.length == 0 ? 'none' : missingTickets.map(x => getTicketLink('', x, x)).join(', '),
+      '</span>');
   }
 
-  container.append(lsvList);
+  lsvList.push('</td></tr>');
+
+  return lsvList.join('');
 }
 
-function renderMissingSecurityFixes(
-  buildNameNode : HTMLElement,
+function updateMissingTicketTable(
   lsvTickets : any
 ) : void {
 
-  var projectNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
-  var projectParentElement = <HTMLElement> projectNode.parentElement;
+  var tableContainer = <HTMLElement> document.getElementById('security-fixes');
 
-  var missingTicketList = getMissingTicketList(buildNameNode, lsvTickets);
+  var missingTicketList = getMissingTicketList(lsvTickets);
 
-  var container = document.getElementById('security-advisory');
+  var tableRows = missingTicketList.map(getMissingTicketTableRow.bind(null, lsvTickets));
+  var tableRowsHTML = tableRows.join('');
 
-  if (container) {
-    container.remove();
-  }
-
-  container = document.createElement('div');
-  container.setAttribute('id', 'security-advisory');
-  container.classList.add('control-group', 'input-text-wrapper');
-
-  addMissingSecurityFixesTable(container, missingTicketList);
-  addSecurityAdvisories(container, lsvTickets, missingTicketList);
-
-  var accountElement = querySelector('patcherBuildAccountEntryCode');
-  if (!accountElement) {
-    var label = <HTMLElement> document.querySelector('label[for="' + ns + 'account-code"]');
-    accountElement = <HTMLElement | null> label.nextSibling;
-  }
-
-  if (!accountElement) {
-    return;
-  }
-
-  var accountParentElement = <HTMLElement> accountElement.parentElement;
-  var accountGrandParentElement = <HTMLElement> accountParentElement.parentElement;
-  accountGrandParentElement.insertBefore(container, accountParentElement);
+  tableContainer.innerHTML = [
+    '<table class="table table-bordered table-hover">',
+    '<tbody class="table-data">', tableRowsHTML, '</tbody>',
+    '<tfoot><tr><td class="show-details" colspan=2>',
+    '<a class="compact" href="#" onclick="var cl=this.closest(\'#security-fixes\').classList;',
+    'cl.remove(\'compact\');cl.add(\'verbose\');return false;">(show details)</a>',
+    '<a class="verbose" href="#" onclick="var cl=this.closest(\'#security-fixes\').classList;',
+    'cl.add(\'compact\');cl.remove(\'verbose\');return false;">(hide details)</a>',
+    '</td></tr></tfoot></table>'
+  ].join('');
 }
 
-function showMissingSecurityFixes() {
-  if (document.location.pathname.indexOf('/-/osb_patcher/builds/') == -1) {
-    return;
-  }
-
+function renderSecurityFixesSection() : void {
   var buildNameNode = <HTMLElement> querySelector('patcherBuildName');
 
   var xhr = new XMLHttpRequest();
@@ -171,14 +150,54 @@ function showMissingSecurityFixes() {
   xhr.open('GET', lsvFixedInURL);
   xhr.onload = function() {
     var lsvTickets = JSON.parse(this.responseText);
-    var renderMissingSecurityFixesListener = renderMissingSecurityFixes.bind(xhr, buildNameNode, lsvTickets);
+    var updateMissingTicketTableListener = updateMissingTicketTable.bind(null, lsvTickets);
 
-    buildNameNode.addEventListener('blur', renderMissingSecurityFixesListener);
+    buildNameNode.addEventListener('blur', updateMissingTicketTableListener);
 
     var projectVersionNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
-    projectVersionNode.addEventListener('change', renderMissingSecurityFixesListener);
+    projectVersionNode.addEventListener('change', updateMissingTicketTableListener);
 
-    renderMissingSecurityFixesListener();
+    updateMissingTicketTableListener();
   }
   xhr.send(null);
+}
+
+function addSecurityFixesSection() : void {
+  if (document.location.pathname.indexOf('/-/osb_patcher/builds/') == -1) {
+    return;
+  }
+
+  var projectNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
+  var projectParentElement = <HTMLElement> projectNode.parentElement;
+
+  var accountElement = querySelector('patcherBuildAccountEntryCode');
+  if (!accountElement) {
+    var label = <HTMLLabelElement> document.querySelector('label[for="' + ns + 'account-code"]');
+    accountElement = <HTMLElement | null> label.nextSibling;
+  }
+
+  if (!accountElement) {
+    return;
+  }
+
+  var container = <HTMLElement> document.createElement('div');
+  container.classList.add('control-group', 'input-text-wrapper');
+
+  var label = document.createElement('label');
+  label.classList.add('control-label');
+  label.textContent = 'Missing Security Fixes';
+
+  container.appendChild(label);
+
+  var tableContainer = document.createElement('span');
+  tableContainer.setAttribute('id', 'security-fixes');
+  tableContainer.classList.add('compact');
+
+  container.appendChild(tableContainer);
+
+  var accountParentElement = <HTMLElement> accountElement.parentElement;
+  var accountGrandParentElement = <HTMLElement> accountParentElement.parentElement;
+  accountGrandParentElement.insertBefore(container, accountParentElement);
+
+  renderSecurityFixesSection();
 }

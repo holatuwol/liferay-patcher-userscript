@@ -1,22 +1,30 @@
 // Run all the changes we need to the page.
 
 var applyPatcherCustomizations = function() {
-  replaceJenkinsLinks();
-  replacePopupWindowLinks();
-  addBaselineToBuildTemplate();
-  replaceHotfixLink('debug');
-  replaceHotfixLink('official');
-  replaceHotfixLink('sourceZip');
-  replaceBranchName();
-  replaceFixes();
-  replaceBuild();
-  replaceLesaLink('lesaTicket');
-  replaceLesaLink('supportTicket');
-  replaceDate('createDate');
-  replaceDate('modifiedDate');
-  addProductVersionFilter();
   highlightAnalysisNeededBuilds();
-  showMissingSecurityFixes();
+
+  var activeTab = document.querySelector('.tab.active');
+
+  if (activeTab && ((activeTab.textContent || '').trim() != 'QA Builds')) {
+    replaceJenkinsLinks();
+    replacePopupWindowLinks();
+    addBaselineToBuildTemplate();
+    replaceHotfixLink('debug');
+    replaceHotfixLink('ignore');
+    replaceHotfixLink('official');
+    replaceHotfixLink('sourceZip');
+    replaceReadOnlySelect('type', null, null);
+    replaceBranchName();
+    replaceFixes();
+    replaceBuild();
+    replaceLesaLink('lesaTicket');
+    replaceLesaLink('supportTicket');
+    replaceDate('createDate');
+    replaceDate('modifiedDate');
+    replaceDate('statusDate');
+    addProductVersionFilter();
+    addSecurityFixesSection();
+  }
 
   setTimeout(updateFromQueryString, 500);
 };

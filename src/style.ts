@@ -27,10 +27,71 @@ a.included-in-baseline:hover {
   display: block;
 }
 
+#_1_WAR_osbpatcherportlet_patcherBuildName,
+#_1_WAR_osbpatcherportlet_patcherFixName {
+  height: 5em;
+  width: 60em;
+}
+
+.control-group.field-wrapper .table,
+.control-group.input-select-wrapper .table,
+.control-group.input-String-wrapper .table,
+.control-group.input-text-wrapper .table {
+  margin-bottom: 0.5em;
+}
+
+#security-fixes .show-details {
+  background-color: #fff;
+  font-size: x-small;
+  line-height: 0.5em;
+  text-align: right;
+}
+
+.compact .verbose,
+.verbose .compact {
+  display: none;
+}
+
 th.branch-type,
 th.branch-type a {
   font-weight: bold;
   width: 5em;
+}
+
+.control-group.field-wrapper,
+.control-group.input-select-wrapper,
+.control-group.input-String-wrapper,
+.control-group.input-text-wrapper {
+  display: flex;
+  margin-bottom: 0.1em;
+}
+
+a[href*="https://grow.liferay.com/"] {
+  padding-left: 0.5em;
+}
+
+a[href*="https://test-5-2.liferay.com/"] {
+  padding-right: 0.5em;
+}
+
+a[href*="http://files.liferay.com/"],
+a[href*="https://files.liferay.com/"] {
+  font-size: x-large;
+}
+
+.control-group.field-wrapper .control-label,
+.control-group.input-select-wrapper .control-label,
+.control-group.input-String-wrapper .control-label,
+.control-group.input-text-wrapper .control-label {
+  font-weight: bold;
+  min-width: 15em;
+  width: 15em;
+}
+
+#security-fixes dl {
+  margin-block-start: 0em;
+  margin-block-end: 0em;
+  margin-bottom: 0px;
 }
 
 /**

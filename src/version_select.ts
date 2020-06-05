@@ -1,3 +1,23 @@
+function replaceReadOnlySelect(
+  name: string,
+  text: string | null,
+  link: string | null
+) : void {
+
+  var select = <HTMLSelectElement | null> querySelector(name);
+
+  if (!select || !select.disabled) {
+    return;
+  }
+
+  if (link) {
+    replaceNode(select, '<a href="' + link + '">' + text + '</a>');
+  }
+  else {
+    replaceNode(select, select.options[select.selectedIndex].textContent || 'unknown');
+  }
+}
+
 /**
  * Adds a new element to the page to allow you to select from a list of
  * Liferay versions before choosing a product version.
@@ -11,13 +31,13 @@ function addProductVersionFilter() : void {
   }
   
   if (productVersionSelect.disabled) {
-    var projectVersionSelect = <HTMLSelectElement> querySelector('patcherProjectVersionId');
-
     var metadata = <FixPackMetadata> getFixPack();
     var patcherTagName = metadata.tag;
     var branchName = metadata.name;
 
-    replaceNode(projectVersionSelect, '<a href="https://github.com/liferay/liferay-portal-ee/tree/' + patcherTagName + '">' + branchName + '</a>');
+    replaceReadOnlySelect('patcherProductVersionId', null, null);
+    replaceReadOnlySelect('patcherProjectVersionId', branchName, 'https://github.com/liferay/liferay-portal-ee/tree/' + patcherTagName);
+
     return;
   }
 
