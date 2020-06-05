@@ -17,7 +17,6 @@
     "src/baseline.ts",
     "src/version_select.ts",
     "src/child_builds.ts",
-    "src/old_builds.ts",
     "src/fixes.ts",
     "src/hotfix.ts",
     "src/zendesk.ts",

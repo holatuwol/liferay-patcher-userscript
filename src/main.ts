@@ -10,8 +10,6 @@ var applyPatcherCustomizations = function() {
   replaceBranchName();
   replaceFixes();
   replaceBuild();
-  replaceAccountLink('accountEntryCode');
-  replaceAccountLink('patcherBuildAccountEntryCode');
   replaceLesaLink('lesaTicket');
   replaceLesaLink('supportTicket');
   replaceDate('createDate');
