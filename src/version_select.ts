@@ -41,7 +41,7 @@ function addProductVersionFilter() : void {
     return;
   }
 
-  var versions = ['', '6.x', '7.0', '7.1', '7.2'];
+  var versions = ['', '6.x', '7.0', '7.1', '7.2', '7.3'];
 
   for (var i = 0; i < productVersionSelect.options.length; i++) {
     var option = productVersionSelect.options[i];

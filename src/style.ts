@@ -23,7 +23,8 @@ a.included-in-baseline:hover {
 #_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="6.x"] option[data-liferay-version="6.x"],
 #_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.0"] option[data-liferay-version="7.0"],
 #_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.1"] option[data-liferay-version="7.1"],
-#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.2"] option[data-liferay-version="7.2"] {
+#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.2"] option[data-liferay-version="7.2"],
+#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.3"] option[data-liferay-version="7.3"] {
   display: block;
 }
 
@@ -64,6 +65,13 @@ th.branch-type a {
 .control-group.input-text-wrapper {
   display: flex;
   margin-bottom: 0.1em;
+}
+
+#toggle_id_patcher_fix_searchadvancedBodyNode .control-group.field-wrapper,
+#toggle_id_patcher_fix_searchadvancedBodyNode .control-group.input-select-wrapper,
+#toggle_id_patcher_fix_searchadvancedBodyNode .control-group.input-String-wrapper,
+#toggle_id_patcher_fix_searchadvancedBodyNode .control-group.input-text-wrapper {
+  display: block;
 }
 
 a[href*="https://grow.liferay.com/"] {

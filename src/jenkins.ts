@@ -4,14 +4,10 @@
  */
 
 function replaceJenkinsLinks() {
-  var links = document.querySelectorAll('a[href*="/job/fixpack-builder"]');
+  var links = document.querySelectorAll('a[href*="/job/fixpack-builder"]:not([href*="consoleText"])');
 
   for (var i = 0; i < links.length; i++) {
     var href = <string> links[i].getAttribute('href');
-
-    if (href.indexOf('consoleText') != -1) {
-      continue;
-    }
 
     if (href.charAt(href.length - 1) != '/') {
       href += '/';
