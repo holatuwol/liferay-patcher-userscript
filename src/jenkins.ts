@@ -4,7 +4,20 @@
  */
 
 function replaceJenkinsLinks() {
-  var links = document.querySelectorAll('a[href*="/job/fixpack-builder"]:not([href*="consoleText"])');
+  var consolePath = 'consoleText';
+  var statusLabel = document.querySelector('label[for="_1_WAR_osbpatcherportlet_status"]');
+
+  if (statusLabel) {
+    var statusLabelSibling = <HTMLElement> statusLabel.nextSibling;
+
+    if (statusLabelSibling) {
+      if ('Compiling' == (statusLabelSibling.textContent || '').trim()) {
+        consolePath = 'console';
+      }
+    }
+  }
+
+  var links = document.querySelectorAll('a[href*="/job/fixpack-builder"]:not([href*="' + consolePath + '"])');
 
   for (var i = 0; i < links.length; i++) {
     var href = <string> links[i].getAttribute('href');
@@ -13,7 +26,7 @@ function replaceJenkinsLinks() {
       href += '/';
     }
 
-    links[i].setAttribute('href', href + 'consoleText');
+    links[i].setAttribute('href', href + consolePath);
   }
 
   links = document.querySelectorAll('a[href*="//test-5-2/"]');
