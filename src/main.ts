@@ -26,6 +26,8 @@ var applyPatcherCustomizations = function() {
     addSecurityFixesSection();
   }
 
+  compareBuildFixes();
+
   setTimeout(updateFromQueryString, 500);
 };
 
