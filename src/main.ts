@@ -6,6 +6,7 @@ var applyPatcherCustomizations = function() {
   var activeTab = document.querySelector('.tab.active');
 
   if (activeTab && ((activeTab.textContent || '').trim() != 'QA Builds')) {
+    rearrangeColumns();
     replaceJenkinsLinks();
     replacePopupWindowLinks();
     addBaselineToBuildTemplate();

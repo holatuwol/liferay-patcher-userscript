@@ -28,10 +28,13 @@ a.included-in-baseline:hover {
   display: block;
 }
 
-#_1_WAR_osbpatcherportlet_patcherBuildName,
-#_1_WAR_osbpatcherportlet_patcherFixName {
-  height: 5em;
+textarea[inputcssclass="osb-patcher-input-wide"] {
+  height: 3em;
   width: 60em;
+}
+
+#_1_WAR_osbpatcherportlet_patcherBuildName {
+  height: 5em;
 }
 
 .control-group.field-wrapper .table,
@@ -41,7 +44,8 @@ a.included-in-baseline:hover {
   margin-bottom: 0.5em;
 }
 
-#security-fixes .show-details {
+#security-fixes .show-details,
+#ticket-suggestions .show-details {
   background-color: #fff;
   font-size: x-small;
   line-height: 0.5em;
@@ -50,7 +54,7 @@ a.included-in-baseline:hover {
 
 .compact .verbose,
 .verbose .compact {
-  display: none;
+  display: none !important;
 }
 
 th.branch-type,
@@ -65,6 +69,13 @@ th.branch-type a {
 .control-group.input-text-wrapper {
   display: flex;
   margin-bottom: 0.1em;
+}
+
+.control-group .control-group.field-wrapper,
+.control-group .control-group.input-select-wrapper,
+.control-group .control-group.input-String-wrapper,
+.control-group .control-group.input-text-wrapper {
+  display: block;
 }
 
 #toggle_id_patcher_fix_searchadvancedBodyNode .control-group.field-wrapper,
@@ -92,8 +103,8 @@ a[href*="https://files.liferay.com/"] {
 .control-group.input-String-wrapper .control-label,
 .control-group.input-text-wrapper .control-label {
   font-weight: bold;
-  min-width: 15em;
-  width: 15em;
+  min-width: 20em;
+  width: 20em;
 }
 
 #security-fixes dl {

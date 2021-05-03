@@ -21,6 +21,7 @@ function getMissingTicketList(
   }
 
   var buildNameNode = <HTMLElement> querySelector('patcherBuildName');
+  buildNameNode.removeAttribute('style');
 
   var buildName = [];
 
@@ -167,13 +168,10 @@ function addSecurityFixesSection() : void {
     return;
   }
 
-  var projectNode = <HTMLSelectElement> querySelector('patcherProjectVersionId');
-  var projectParentElement = <HTMLElement> projectNode.parentElement;
-
   var accountElement = querySelector('patcherBuildAccountEntryCode');
   if (!accountElement) {
-    var label = <HTMLLabelElement> document.querySelector('label[for="' + ns + 'account-code"]');
-    accountElement = <HTMLElement | null> label.nextSibling;
+    var labelElement = <HTMLLabelElement> document.querySelector('label[for="' + ns + 'account-code"]');
+    accountElement = <HTMLElement | null> labelElement.nextSibling;
   }
 
   if (!accountElement) {
@@ -183,11 +181,11 @@ function addSecurityFixesSection() : void {
   var container = <HTMLElement> document.createElement('div');
   container.classList.add('control-group', 'input-text-wrapper');
 
-  var label = document.createElement('label');
-  label.classList.add('control-label');
-  label.textContent = 'Missing Security Fixes';
+  var labelElement = document.createElement('label');
+  labelElement.classList.add('control-label');
+  labelElement.textContent = 'Missing Security Fixes';
 
-  container.appendChild(label);
+  container.appendChild(labelElement);
 
   var tableContainer = document.createElement('span');
   tableContainer.setAttribute('id', 'security-fixes');
