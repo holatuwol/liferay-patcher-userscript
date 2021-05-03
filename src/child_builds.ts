@@ -40,7 +40,12 @@ function replaceGitHashes(
   childBuildsMetadata : Array<BuildMetadata>
 ) : void {
 
-  var gitHashLabel = <HTMLLabelElement> document.querySelector('label[for="' + ns + 'git-hash"]');
+  var gitHashLabel = document.querySelector('label[for="' + ns + 'git-hash"]');
+
+  if (!gitHashLabel) {
+    return;
+  }
+
   var gitHashLabelParentElement = <HTMLElement> gitHashLabel.parentElement;
   var oldNode = <HTMLAnchorElement> gitHashLabelParentElement.querySelector('a');
   var mergeCompareLink = oldNode.href;

@@ -17,8 +17,6 @@ function rearrangeColumns() : void {
     return;
   }
 
-  document.querySelectorAll
-
   var accountElement = querySelector('patcherBuildAccountEntryCode');
   if (!accountElement) {
     var labelElement = <HTMLLabelElement> document.querySelector('label[for="' + ns + 'account-code"]');
@@ -33,6 +31,10 @@ function rearrangeColumns() : void {
   var accountGrandParentElement = <HTMLElement> accountParentElement.parentElement;
 
   var columns = document.querySelectorAll('.column');
+
+  if (columns.length < 2) {
+    return;
+  }
 
   var controlGroups = columns[1].querySelectorAll('.control-group');
 
