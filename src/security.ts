@@ -8,7 +8,7 @@ function getMissingTicketList(
     return [[],[],[],[]];
   }
 
-  var tagName = fixPack.tag;
+  var tagName = (fixPack.name.indexOf('portal-') == 0) ? fixPack.name : fixPack.tag;
   var liferayVersion = getLiferayVersion(tagName);
 
   var buildNumber = '';
