@@ -8,7 +8,7 @@ function getMissingTicketList(
     return [[],[],[],[]];
   }
 
-  var tagName = (fixPack.name.indexOf('portal-') == 0) ? fixPack.name : fixPack.tag;
+  var tagName = ((fixPack.name.indexOf('portal-') == 0) || (fixPack.name.indexOf('fix-pack-base-6210') == 0)) ? fixPack.name : fixPack.tag;
   var liferayVersion = getLiferayVersion(tagName);
 
   var buildNumber = '';
@@ -38,7 +38,7 @@ function getMissingTicketList(
   var fixPackNumber = 0;
 
   if (buildNumber == '6210') {
-    fixPackNumber = parseInt(tagName.substring('portal-'.length));
+    fixPackNumber = (tagName.indexOf('portal-') == 0) ? parseInt(tagName.substring('portal-'.length)) : 0;
   }
   else {
     fixPackNumber = liferayVersion % 1000;
@@ -86,21 +86,36 @@ function getMissingTicketTableRow(
       'selection.addRange(range);',
       '"><dl>');
 
-    for (var i = 0; i < missingTickets.length; i++) {
-      var ticketName = missingTickets[i];
+    missingTickets
+      .filter(function(ticketName) {
+        return 'lsv' in lsvTickets[ticketName] && 'hc' in lsvTickets[ticketName]
+      })
+      .sort(function(ticketName1, ticketName2) {
+        var ticket1 = lsvTickets[ticketName1];
+        var ticket2 = lsvTickets[ticketName2];
 
-      if (!('hc' in lsvTickets[ticketName])) {
-        continue;
-      }
+        if (ticket1['lsv'] != ticket2['lsv']) {
+          return ticket1['lsv'] - ticket2['lsv'];
+        }
 
-      var lsvNumber = lsvTickets[ticketName]['lsv'];
-      var helpCenterNumber = lsvTickets[ticketName]['hc'];
+        return ticketName1 < ticketName2 ? -1 : 1;
+      })
+      .reduce(function(accumulator, ticketName, index) {
+        var lsvNumber = lsvTickets[ticketName]['lsv'];
+        var helpCenterNumber = lsvTickets[ticketName]['hc'];
 
-      lsvList.push(
-        '<dt>', 'LSV-', lsvNumber, ' / ', ticketName, '</dt><dd>',
-        '<a href="https://help.liferay.com/hc/articles/', helpCenterNumber,
-        '">https://help.liferay.com/hc/articles/', helpCenterNumber, '</a>', '</dd>');
-    }
+        if ((index > 0) && (lsvNumber == accumulator[accumulator.length - 10])) {
+          accumulator[accumulator.length - 8] += ', ' + ticketName;
+        }
+        else {
+          accumulator.push(
+            '<dt>', 'LSV-', lsvNumber, ' / ', ticketName, '</dt><dd>',
+            '<a href="https://help.liferay.com/hc/articles/', helpCenterNumber,
+            '">https://help.liferay.com/hc/articles/', helpCenterNumber, '</a>', '</dd>');
+        }
+
+        return accumulator;
+      }, lsvList);
 
     lsvList.push('</dl></div>');
   }

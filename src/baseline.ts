@@ -85,8 +85,13 @@ function get62FixPack(
         container2.innerHTML = xhr2.responseText;
 
         var gitHashLabelNode = <HTMLLabelElement> container2.querySelector('label[for="' + ns + 'git-hash"]');
-        var gitHashLabelparentElement = <HTMLElement> gitHashLabelNode.parentElement;
-        var gitHubNode = gitHashLabelparentElement.querySelector('a');
+
+        if (!gitHashLabelNode) {
+          return;
+        }
+
+        var gitHashLabelParentElement = <HTMLElement> gitHashLabelNode.parentElement;
+        var gitHubNode = gitHashLabelParentElement.querySelector('a');
 
         if (gitHubNode) {
           var gitHubURL = <string> gitHubNode.getAttribute('href');
@@ -99,7 +104,8 @@ function get62FixPack(
 
     xhr1.send(null);
   }
-  else {
+
+  if (!baseTag) {
     var versionLabel = <HTMLLabelElement> document.querySelector('label[for="' + ns + 'patcherProjectVersionId"]');
     var versionHolder = <HTMLElement> versionLabel.parentElement;
     var versionNode = versionHolder.querySelector('a');
@@ -111,10 +117,16 @@ function get62FixPack(
     }
     else {
       var versionOption = <HTMLOptionElement> versionHolder.querySelector('option[selected]');
+
+      if (versionOption == null) {
+        var versionSelect = <HTMLSelectElement> versionHolder.querySelector('select');
+        versionOption = <HTMLOptionElement> versionSelect.querySelector('option[value="' + versionSelect.value + '"]');
+      }
+
       fixPackName = (versionOption.textContent || '').trim();
     }
 
-    baseTag = 'fix-pack-base-6210-' + fixPackName.toLowerCase().substring(fixPackName.indexOf(' ') + 1);
+    baseTag = (fixPackName.indexOf(' ') == -1) ? 'fix-pack-base-6210' : 'fix-pack-base-6210-' + fixPackName.toLowerCase().substring(fixPackName.indexOf(' ') + 1);
   }
 
   return {
