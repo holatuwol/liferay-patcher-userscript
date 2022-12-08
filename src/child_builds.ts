@@ -170,7 +170,12 @@ function replaceBuild() : void {
     var xhr = new XMLHttpRequest();
 
     xhr.open('GET', document.location.pathname + '/childBuilds');
+
     xhr.onload = processChildBuilds.bind(null, xhr, buildNode);
+
+    xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
+    xhr.setRequestHeader('Pragma', 'no-cache');
+
     xhr.send(null);
   }
 

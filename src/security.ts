@@ -33,7 +33,7 @@ function getMissingTicketList(
   }
 
   var ticketList = new Set(buildName.map(x => x.trim()));
-  var missingTicketList = <Array<Array<string>>> [[],[],[],[]];
+  var missingTicketList = <Array<Array<string>>> [[],[],[],[],[]];
 
   var fixPackNumber = 0;
 
@@ -46,7 +46,7 @@ function getMissingTicketList(
 
   for (var ticketName in lsvTickets) {
     if (!ticketList.has(ticketName) && lsvTickets[ticketName][buildNumber] && lsvTickets[ticketName][buildNumber] > fixPackNumber) {
-      var severity = lsvTickets[ticketName]['sev'] || 3;
+      var severity = lsvTickets[ticketName]['sev'] || 4;
       missingTicketList[severity].push(ticketName);
     }
   }
@@ -65,14 +65,14 @@ function getMissingTicketTableRow(
   }
 
   var lsvList = [
-    '<tr><th class="nowrap">SEV-', severity, '</th><td>'
+    '<tr><th class="nowrap">', severity == 4 ? 'other' : 'SEV-' + severity, '</th><td>'
   ];
 
-  if ((severity == 1) || (severity == 2)) {
-    if (missingTickets.length == 0) {
-      return '';
-    }
+  if ((severity != 3) && (missingTickets.length == 0)) {
+    return '';
+  }
 
+  if ((severity == 1) || (severity == 2)) {
     lsvList.push('<span class="compact">');
     lsvList.push(missingTickets.map(x => getTicketLink('', x, x)).join(', '));
     lsvList.push('</span>');
@@ -121,7 +121,7 @@ function getMissingTicketTableRow(
   }
   else {
     lsvList.push(
-      '<span class="compact">', missingTickets.length,
+      '<span class="compact">', '' + missingTickets.length,
       missingTickets.length == 1 ? ' ticket' : ' tickets',
       '</span><span class="verbose">',
       missingTickets.length == 0 ? 'none' : missingTickets.map(x => getTicketLink('', x, x)).join(', '),
@@ -164,6 +164,7 @@ function renderSecurityFixesSection() : void {
   var lsvFixedInURL = 'https://s3-us-west-2.amazonaws.com/mdang.grow/lsv_fixedin.json';
 
   xhr.open('GET', lsvFixedInURL);
+
   xhr.onload = function() {
     var lsvTickets = JSON.parse(this.responseText);
     var updateMissingTicketTableListener = updateMissingTicketTable.bind(null, lsvTickets);
@@ -175,6 +176,10 @@ function renderSecurityFixesSection() : void {
 
     updateMissingTicketTableListener();
   }
+
+  xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
+  xhr.setRequestHeader('Pragma', 'no-cache');
+
   xhr.send(null);
 }
 

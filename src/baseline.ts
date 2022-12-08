@@ -67,6 +67,7 @@ function get62FixPack(
     var xhr1 = new XMLHttpRequest();
 
     xhr1.open('GET', fixPackListURL, false);
+
     xhr1.onload = function() {
       // https://stackoverflow.com/questions/20583396/queryselectorall-to-html-from-another-page
       var container1 = document.implementation.createHTMLDocument().documentElement;
@@ -79,6 +80,7 @@ function get62FixPack(
       var xhr2 = new XMLHttpRequest();
 
       xhr2.open('GET', fixPackURL, false);
+
       xhr2.onload = function() {
         // https://stackoverflow.com/questions/20583396/queryselectorall-to-html-from-another-page
         var container2 = document.implementation.createHTMLDocument().documentElement;
@@ -99,8 +101,14 @@ function get62FixPack(
         }
       };
 
+      xhr2.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
+      xhr2.setRequestHeader('Pragma', 'no-cache');
+
       xhr2.send(null);
     };
+
+    xhr1.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
+    xhr1.setRequestHeader('Pragma', 'no-cache');
 
     xhr1.send(null);
   }
