@@ -25,6 +25,7 @@ var applyPatcherCustomizations = function() {
     replaceDate('statusDate');
     addProductVersionFilter();
     addSecurityFixesSection();
+    addEngineerComments();
   }
 
   compareBuildFixes();

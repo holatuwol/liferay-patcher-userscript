@@ -23,6 +23,7 @@
     "src/zendesk.ts",
     "src/support_qa.ts",
     "src/security.ts",
+    "src/comments.ts",
     "src/main.ts"
   ]
 }
