@@ -20,7 +20,7 @@ function replaceLesaLink(target : string) {
     }
     else if (isNaN(parseInt(oldNode.value))) {
       if ((oldNode.value.indexOf('LPP-') == 0) || (oldNode.value.indexOf('GROW-') == 0) || (oldNode.value.indexOf('LRP-') == 0)) {
-        ticketHREF = 'https://issues.liferay.com/browse/' + oldNode.value;
+        ticketHREF = 'https://liferay.atlassian.net/browse/' + oldNode.value;
         ticketId = oldNode.value;
         jiraSearchLinkHREF = ticketHREF;
       }
@@ -39,7 +39,7 @@ function replaceLesaLink(target : string) {
 
       var encodedQuery = encodeURIComponent(query);
 
-      jiraSearchLinkHREF = 'https://issues.liferay.com/issues/?jql=' + encodedQuery;
+      jiraSearchLinkHREF = 'https://liferay.atlassian.net/issues/?jql=' + encodedQuery;
     }
 
     var newNode;

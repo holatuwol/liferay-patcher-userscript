@@ -116,7 +116,7 @@ function getTicketLink(
     return ticket;
   }
 
-  var ticketURL = 'https://issues.liferay.com/browse/' + ticket;
+  var ticketURL = 'https://liferay.atlassian.net/browse/' + ticket;
 
   if (className) {
   	var productVersionElement = <HTMLSelectElement> querySelector('patcherProductVersionId');
