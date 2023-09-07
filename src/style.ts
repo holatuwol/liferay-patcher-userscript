@@ -75,7 +75,11 @@ th.branch-type a {
 .control-group .control-group.field-wrapper,
 .control-group .control-group.input-select-wrapper,
 .control-group .control-group.input-String-wrapper,
-.control-group .control-group.input-text-wrapper {
+.control-group .control-group.input-text-wrapper,
+.popover .control-group.field-wrapper,
+.popover .control-group.input-select-wrapper,
+.popover .control-group.input-String-wrapper,
+.popover .control-group.input-text-wrapper {
   display: block;
 }
 
