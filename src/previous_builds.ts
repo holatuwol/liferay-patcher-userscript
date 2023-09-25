@@ -2,15 +2,15 @@ function updateFixesFromPreviousBuilds(
   accountNode: HTMLInputElement,
   buildNameNode : HTMLTextAreaElement,
   projectNode: HTMLSelectElement,
-  previousBuildsInput: HTMLTextAreaElement
+  previousBuildsInput: HTMLDivElement
 ) : void {
 
   var queryString = getQueryString({
-  	advancedSearch: true,
-  	andOperator: true,
-  	delta: 200,
-  	patcherBuildAccountEntryCode: accountNode.value,
-  	patcherProjectVersionIdFilter: projectNode.value
+    advancedSearch: true,
+    andOperator: true,
+    delta: 200,
+    patcherBuildAccountEntryCode: accountNode.value,
+    patcherProjectVersionIdFilter: projectNode.value
   });
 
   var accountBuildsURL = 'https://patcher.liferay.com/group/guest/patching/-/osb_patcher/accounts/view?' + queryString;
@@ -24,17 +24,34 @@ function updateFixesFromPreviousBuilds(
     var container = document.implementation.createHTMLDocument().documentElement;
     container.innerHTML = xhr.responseText;
 
-    var pastTickets = new Set(
-      Array.from(container.querySelectorAll('td > a[title]')).
-        map(it => (it.getAttribute('title') || '').split(/\s*,\s*/g)).
-        reduce((acc, next) => { return acc.concat(next) }, [])
-    );
+    var pastTickets = Array.from(container.querySelectorAll('td > a[title]')).
+        reduce((acc: Record<string, string[]>, next: HTMLAnchorElement) => {
+          var row = <HTMLTableRowElement> next.closest('tr');
+          if ((row.cells[2].textContent || '').trim().toLowerCase() == 'ignore') {
+            return acc;
+          }
+
+          var buildId = (row.cells[1].textContent || '').trim();
+          console.log(buildId, Array.from(row.cells).map(it => it.textContent));
+
+          var newTickets = (next.getAttribute('title') || '').split(/\s*,\s*/g);
+          for (var i = 0; i < newTickets.length; i++) {
+            var newTicket = newTickets[i]
+            if (!acc[newTicket]) {
+              acc[newTicket] = [buildId];
+            }
+            else {
+              acc[newTicket].push(buildId);
+            }
+          }
+          return acc;
+        }, {});
 
     var currentTickets = new Set(
       (buildNameNode.value || '').split(/\s*,\s*/g)
     );
 
-    var missingTickets = Array.from(pastTickets).
+    var missingTickets = Array.from(Object.keys(pastTickets)).
       filter(it => !currentTickets.has(it)).
       sort((a, b) => {
         var splitA = a.split('-');
@@ -44,7 +61,11 @@ function updateFixesFromPreviousBuilds(
           parseInt(splitA[1]) - parseInt(splitB[1]);
       });
 
-    previousBuildsInput.value = missingTickets.join(', ');
+    previousBuildsInput.innerHTML = '<ul>' +
+      missingTickets.map(it1 => {
+        return '<li>' + getTicketLink('', it1, it1) + ': ' +
+          pastTickets[it1].map(it2 => getBuildLink(it2)).join(', ') + '</li>'
+     }).join('') + '</ul>';
 
     var compactCell = <HTMLTableCellElement> document.querySelector('tr[data-suggestion-type="Previous Builds"] td');
     var ticketCount = missingTickets.length;
@@ -68,7 +89,7 @@ function getFixesFromPreviousBuilds() : Element {
   previousBuildsLabel.textContent = 'Previous Builds Ticket Suggestions';
   previousBuildsContainer.appendChild(previousBuildsLabel);
 
-  var previousBuildsInput = document.createElement('textarea');
+  var previousBuildsInput = document.createElement('div');
   previousBuildsInput.classList.add('input');
   previousBuildsInput.setAttribute('id', '_1_WAR_osbpatcherportlet_previousBuildsTicketList');
   previousBuildsInput.setAttribute('name', '_1_WAR_osbpatcherportlet_previousBuildsTicketList');

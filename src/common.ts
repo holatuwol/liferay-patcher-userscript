@@ -103,6 +103,15 @@ function replaceNode(
 }
 
 /**
+ * Returns a link to the build.
+ */
+
+function getBuildLink(buildId: string | number) : string {
+  return '<a class="nowrap" href="https://patcher.liferay.com/group/guest/patching/-/osb_patcher/builds/' +
+    buildId + '" target="_blank">' + buildId + '</a>';
+}
+
+/**
  * Returns a link to the ticket.
  */
 
