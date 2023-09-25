@@ -31,17 +31,16 @@ function updateFixesFromPreviousBuilds(
             return acc;
           }
 
-          var buildId = (row.cells[1].textContent || '').trim();
-          console.log(buildId, Array.from(row.cells).map(it => it.textContent));
+          var hotfixId = (row.cells[12].textContent || '').trim();
 
           var newTickets = (next.getAttribute('title') || '').split(/\s*,\s*/g);
           for (var i = 0; i < newTickets.length; i++) {
             var newTicket = newTickets[i]
             if (!acc[newTicket]) {
-              acc[newTicket] = [buildId];
+              acc[newTicket] = [hotfixId];
             }
             else {
-              acc[newTicket].push(buildId);
+              acc[newTicket].push(hotfixId);
             }
           }
           return acc;
@@ -61,11 +60,13 @@ function updateFixesFromPreviousBuilds(
           parseInt(splitA[1]) - parseInt(splitB[1]);
       });
 
-    previousBuildsInput.innerHTML = '<ul>' +
+    previousBuildsInput.innerHTML = '<p><a href="' + accountBuildsURL + '" target="_blank">see builds list</a></p><p>' +
       missingTickets.map(it1 => {
-        return '<li>' + getTicketLink('', it1, it1) + ': ' +
-          pastTickets[it1].map(it2 => getBuildLink(it2)).join(', ') + '</li>'
-     }).join('') + '</ul>';
+        return '<span class="nowrap" title="' +
+          pastTickets[it1].map(it => it.substring(it.indexOf('-') + 1, it.lastIndexOf('-'))).join(', ') +
+          '">' + getTicketLink('', it1, it1) + ' (' +
+          pastTickets[it1].length + ((pastTickets[it1].length == 1) ? ' build' : ' builds') + ')</span>'
+     }).join(', ') + '</p>';
 
     var compactCell = <HTMLTableCellElement> document.querySelector('tr[data-suggestion-type="Previous Builds"] td');
     var ticketCount = missingTickets.length;
