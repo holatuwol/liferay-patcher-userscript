@@ -12,6 +12,36 @@ function replaceFixes() : void {
   replaceNode(oldNode, oldNode.innerHTML.split(',').map(getTicketLink.bind(null, '')).join(', '));
 }
 
+function updateCompactContainer(
+  compactContainer: HTMLTableElement,
+  controlGroup: Element
+) : void {
+
+  var labelElement = <HTMLLabelElement> controlGroup.querySelector('label');
+  var label = (labelElement.textContent || '').trim();
+
+  var textarea = controlGroup.querySelector('textarea');
+  var ticketCount = 0;
+
+  if (textarea && textarea.value) {
+    ticketCount = textarea.value.split(',').length;
+  }
+
+  var text = label.substring(0, label.indexOf(' Ticket Suggestions'));
+
+  var tableRow = document.createElement('tr');
+  tableRow.setAttribute('data-suggestion-type', text);
+  compactContainer.appendChild(tableRow);
+
+  var tableHeader = document.createElement('th');
+  tableHeader.textContent = text;
+  tableRow.appendChild(tableHeader);
+
+  var tableCell = document.createElement('td');
+  tableCell.textContent = ticketCount + ((ticketCount == 1) ? ' ticket' : ' tickets');
+  tableRow.appendChild(tableCell);
+}
+
 function rearrangeColumns() : void {
   if (document.location.pathname.indexOf('/-/osb_patcher/builds/') == -1) {
     return;
@@ -51,35 +81,21 @@ function rearrangeColumns() : void {
 
   tableContainer.appendChild(compactContainer);
 
+  var controlGroup = getFixesFromPreviousBuilds();
+
+  tableContainer.appendChild(controlGroup);
+  updateCompactContainer(compactContainer, controlGroup);
+
   for (var i = 2; i < columns.length; i++) {
     controlGroups = columns[i].querySelectorAll('.control-group');
 
     for (var j = 0; j < controlGroups.length; j++) {
-      var controlGroup = controlGroups[j];
+      controlGroup = controlGroups[j];
 
       controlGroup.classList.add('verbose');
       tableContainer.appendChild(controlGroup);
 
-      var labelElement = <HTMLLabelElement> controlGroup.querySelector('label');
-      var label = (labelElement.textContent || '').trim();
-
-      var textarea = <HTMLTextAreaElement> controlGroup.querySelector('textarea');
-      var ticketCount = 0;
-
-      if (textarea.value) {
-        ticketCount = textarea.value.split(',').length;
-      }
-
-      var tableRow = document.createElement('tr');
-      compactContainer.appendChild(tableRow);
-
-      var tableHeader = document.createElement('th');
-      tableHeader.textContent = label.substring(0, label.indexOf(' Ticket Suggestions'));
-      tableRow.appendChild(tableHeader);
-
-      var tableCell = document.createElement('td');
-      tableCell.textContent = ticketCount + ((ticketCount == 1) ? ' ticket' : ' tickets');
-      tableRow.appendChild(tableCell);
+      updateCompactContainer(compactContainer, controlGroup);
     }
   }
 

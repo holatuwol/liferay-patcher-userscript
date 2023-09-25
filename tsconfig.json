@@ -24,6 +24,7 @@
     "src/support_qa.ts",
     "src/security.ts",
     "src/comments.ts",
+    "src/previous_builds.ts",
     "src/main.ts"
   ]
 }
