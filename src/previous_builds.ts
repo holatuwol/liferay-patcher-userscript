@@ -1,3 +1,38 @@
+var pastTickets = <Record<string, string[]>> {};
+
+function checkFixesFromPreviousBuilds(
+  buildNameNode : HTMLTextAreaElement,
+  previousBuildsInput: HTMLDivElement,
+  accountBuildsURL: string
+) {
+
+  var currentTickets = new Set(
+    (buildNameNode.value || '').split(/\s*,\s*/g)
+  );
+
+  var missingTickets = Array.from(Object.keys(pastTickets)).
+    filter(it => !currentTickets.has(it)).
+    sort((a, b) => {
+      var splitA = a.split('-');
+      var splitB = b.split('-');
+
+      return splitA[0] != splitB[0] ? splitA[0] > splitB[0] ? 1 : -1 :
+        parseInt(splitA[1]) - parseInt(splitB[1]);
+    });
+
+  previousBuildsInput.innerHTML = '<p><a href="' + accountBuildsURL + '" target="_blank">see builds list</a></p><p>' +
+    missingTickets.map(it1 => {
+      return '<span class="nowrap" title="' +
+        pastTickets[it1].map(it => it.substring(it.indexOf('-') + 1, it.lastIndexOf('-'))).join(', ') +
+        '">' + getTicketLink('', it1, it1) + ' (' +
+        pastTickets[it1].length + ((pastTickets[it1].length == 1) ? ' build' : ' builds') + ')</span>'
+   }).join(', ') + '</p>';
+
+  var compactCell = <HTMLTableCellElement> document.querySelector('tr[data-suggestion-type="Previous Builds"] td');
+  var ticketCount = missingTickets.length;
+  compactCell.textContent = ticketCount + ((ticketCount == 1) ? ' ticket' : ' tickets');
+}
+
 function updateFixesFromPreviousBuilds(
   accountNode: HTMLInputElement,
   buildNameNode : HTMLTextAreaElement,
@@ -15,6 +50,11 @@ function updateFixesFromPreviousBuilds(
 
   var accountBuildsURL = 'https://patcher.liferay.com/group/guest/patching/-/osb_patcher/accounts/view?' + queryString;
 
+  if (Object.keys(pastTickets).length > 0) {
+    checkFixesFromPreviousBuilds(buildNameNode, previousBuildsInput, accountBuildsURL);
+    return;
+  }
+
   var xhr = new XMLHttpRequest();
 
   xhr.open('GET', accountBuildsURL);
@@ -24,59 +64,35 @@ function updateFixesFromPreviousBuilds(
     var container = document.implementation.createHTMLDocument().documentElement;
     container.innerHTML = xhr.responseText;
 
-    var pastTickets = Array.from(container.querySelectorAll('td > a[title]')).
-        reduce((acc: Record<string, string[]>, next: HTMLAnchorElement) => {
-          var row = <HTMLTableRowElement> next.closest('tr');
-          if ((row.cells[2].textContent || '').trim().toLowerCase() == 'ignore') {
-            return acc;
-          }
-          if ((row.cells[9].textContent || '').trim().toLowerCase().indexOf('ignore') != -1) {
-            return acc;
-          }
-          if ((row.cells[10].textContent || '').trim().toLowerCase().indexOf('qa passed') == -1) {
-            return acc;
-          }
-
-          var hotfixId = (row.cells[12].textContent || '').trim();
-
-          var newTickets = (next.getAttribute('title') || '').split(/\s*,\s*/g);
-          for (var i = 0; i < newTickets.length; i++) {
-            var newTicket = newTickets[i]
-            if (!acc[newTicket]) {
-              acc[newTicket] = [hotfixId];
-            }
-            else {
-              acc[newTicket].push(hotfixId);
-            }
-          }
+    pastTickets = Array.from(container.querySelectorAll('td > a[title]')).
+      reduce((acc: Record<string, string[]>, next: HTMLAnchorElement) => {
+        var row = <HTMLTableRowElement> next.closest('tr');
+        if ((row.cells[2].textContent || '').trim().toLowerCase() == 'ignore') {
           return acc;
-        }, {});
+        }
+        if ((row.cells[9].textContent || '').trim().toLowerCase().indexOf('ignore') != -1) {
+          return acc;
+        }
+        if ((row.cells[10].textContent || '').trim().toLowerCase().indexOf('qa passed') == -1) {
+          return acc;
+        }
 
-    var currentTickets = new Set(
-      (buildNameNode.value || '').split(/\s*,\s*/g)
-    );
+        var hotfixId = (row.cells[12].textContent || '').trim();
 
-    var missingTickets = Array.from(Object.keys(pastTickets)).
-      filter(it => !currentTickets.has(it)).
-      sort((a, b) => {
-        var splitA = a.split('-');
-        var splitB = b.split('-');
+        var newTickets = (next.getAttribute('title') || '').split(/\s*,\s*/g);
+        for (var i = 0; i < newTickets.length; i++) {
+          var newTicket = newTickets[i]
+          if (!acc[newTicket]) {
+            acc[newTicket] = [hotfixId];
+          }
+          else {
+            acc[newTicket].push(hotfixId);
+          }
+        }
+        return acc;
+      }, {});
 
-        return splitA[0] != splitB[0] ? splitA[0] > splitB[0] ? 1 : -1 :
-          parseInt(splitA[1]) - parseInt(splitB[1]);
-      });
-
-    previousBuildsInput.innerHTML = '<p><a href="' + accountBuildsURL + '" target="_blank">see builds list</a></p><p>' +
-      missingTickets.map(it1 => {
-        return '<span class="nowrap" title="' +
-          pastTickets[it1].map(it => it.substring(it.indexOf('-') + 1, it.lastIndexOf('-'))).join(', ') +
-          '">' + getTicketLink('', it1, it1) + ' (' +
-          pastTickets[it1].length + ((pastTickets[it1].length == 1) ? ' build' : ' builds') + ')</span>'
-     }).join(', ') + '</p>';
-
-    var compactCell = <HTMLTableCellElement> document.querySelector('tr[data-suggestion-type="Previous Builds"] td');
-    var ticketCount = missingTickets.length;
-    compactCell.textContent = ticketCount + ((ticketCount == 1) ? ' ticket' : ' tickets');
+     checkFixesFromPreviousBuilds(buildNameNode, previousBuildsInput, accountBuildsURL);
   };
 
   xhr.send(null);
