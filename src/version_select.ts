@@ -51,6 +51,9 @@ function addProductVersionFilter() : void {
       if ((optionText.indexOf('DXP ' + versions[j]) != -1) || (optionText.indexOf('Portal ' + versions[j]) != -1)) {
         option.setAttribute('data-liferay-version', versions[j]);
       }
+      else if (optionText.trim() == 'Quarterly Releases') {
+        option.setAttribute('data-liferay-version', '7.4');
+      }
     }
   }
 
