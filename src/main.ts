@@ -11,6 +11,7 @@ var applyPatcherCustomizations = function() {
     replacePopupWindowLinks();
     addBaselineToBuildTemplate();
     replaceHotfixLink('debug');
+    replaceHotfixLink('hotfix');
     replaceHotfixLink('ignore');
     replaceHotfixLink('official');
     replaceHotfixLink('sourceZip');
