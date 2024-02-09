@@ -29,6 +29,18 @@ function replaceJenkinsLinks() {
     links[i].setAttribute('href', href + consolePath);
   }
 
+  links = document.querySelectorAll('a[href*="/job/build-hotfix"]:not([href*="/artifact/"])');
+
+  for (var i = 0; i < links.length; i++) {
+    var href = <string> links[i].getAttribute('href');
+
+    if (href.charAt(href.length - 1) != '/') {
+      href += '/';
+    }
+
+    links[i].setAttribute('href', href + 'artifact/release/release-data/build/');
+  }
+
   links = document.querySelectorAll('a[href*="//test-5-2/"]');
 
   for (var i = 0; i < links.length; i++) {
