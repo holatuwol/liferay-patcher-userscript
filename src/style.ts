@@ -34,6 +34,13 @@ textarea[inputcssclass="osb-patcher-input-wide"] {
   width: 60em;
 }
 
+p[inputcssclass="osb-patcher-input-wide"] {
+  display: inline-block;
+  padding: 4px 6px;
+  margin-right: 5px;
+  width: 60em;
+}
+
 #_1_WAR_osbpatcherportlet_patcherBuildName {
   height: 5em;
 }

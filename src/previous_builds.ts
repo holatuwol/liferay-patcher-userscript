@@ -1,5 +1,27 @@
 var pastTickets = <Record<string, string[]>> {};
 
+function getHotfixShortNames(hotfixes: string[]) : string[] {
+  return hotfixes.map(it => {
+    return (it.indexOf('.q') != -1) ?
+      it.substring(it.indexOf('-hotfix') + 1, it.length - 4) :
+      it.substring(it.indexOf('-') + 1, it.lastIndexOf('-'))
+  });
+}
+
+function getTicketBuildCountSummary(
+  ticketId: string,
+  hotfixes: string[]
+) : HTMLSpanElement {
+
+  var summaryElement = document.createElement('span');
+  summaryElement.classList.add('nowrap', 'osb-ticket-builds-summary');
+  summaryElement.setAttribute('title', getHotfixShortNames(hotfixes).join(', '));
+
+  summaryElement.innerHTML = getTicketLink('', ticketId, ticketId) + ' (' + hotfixes.length + ' build' + ((hotfixes.length == 1) ? '' : 's') + ')</span>';
+
+  return summaryElement;
+}
+
 function checkFixesFromPreviousBuilds(
   buildNameNode : HTMLTextAreaElement,
   previousBuildsInput: HTMLDivElement,
@@ -20,13 +42,50 @@ function checkFixesFromPreviousBuilds(
         parseInt(splitA[1]) - parseInt(splitB[1]);
     });
 
-  previousBuildsInput.innerHTML = '<p><a href="' + accountBuildsURL + '" target="_blank">see builds list</a></p><p>' +
-    missingTickets.map(it1 => {
-      return '<span class="nowrap" title="' +
-        pastTickets[it1].map(it => it.substring(it.indexOf('-') + 1, it.lastIndexOf('-'))).join(', ') +
-        '">' + getTicketLink('', it1, it1) + ' (' +
-        pastTickets[it1].length + ((pastTickets[it1].length == 1) ? ' build' : ' builds') + ')</span>'
-   }).join(', ') + '</p>';
+  previousBuildsInput.innerHTML = '';
+
+  var buildsListLink = document.createElement('a');
+  buildsListLink.setAttribute('href', accountBuildsURL);
+  buildsListLink.setAttribute('target', '_blank');
+  buildsListLink.textContent = 'see builds list';
+
+  var buildsListParagraph = document.createElement('p');
+  buildsListParagraph.appendChild(buildsListLink);
+
+  previousBuildsInput.appendChild(buildsListParagraph);
+
+  if (missingTickets.length > 0) {
+    var ticketsListParagraph = missingTickets.reduce((acc, next, i) => {
+      if (i > 0) {
+        acc.appendChild(document.createTextNode(', '));
+      }
+
+      acc.appendChild(getTicketBuildCountSummary(next, pastTickets[next]));
+      return acc;
+    }, document.createElement('p'));
+
+    ticketsListParagraph.setAttribute('inputcssclass', 'osb-patcher-input-wide');
+    previousBuildsInput.appendChild(ticketsListParagraph);
+
+    var buttonHolderRow = document.createElement('div');
+    buttonHolderRow.classList.add('button-holder', 'osb-patcher-button-row');
+
+    var button = document.createElement('button');
+    button.setAttribute('type', 'button');
+    button.classList.add('btn', 'osb-patcher-button');
+    button.onclick = function() {
+      buildNameNode.value += ',' + missingTickets.join(',');
+      checkFixesFromPreviousBuilds(buildNameNode, previousBuildsInput, accountBuildsURL);
+      return false;
+    };
+
+    var buttonContent = document.createElement('i');
+    buttonContent.classList.add('icon-plus-sign');
+
+    button.appendChild(buttonContent);
+    buttonHolderRow.appendChild(button);
+    previousBuildsInput.appendChild(buttonHolderRow);
+  }
 
   var compactCell = <HTMLTableCellElement> document.querySelector('tr[data-suggestion-type="Previous Builds"] td');
   var ticketCount = missingTickets.length;
@@ -71,9 +130,6 @@ function updateFixesFromPreviousBuilds(
           return acc;
         }
         if ((row.cells[9].textContent || '').trim().toLowerCase().indexOf('ignore') != -1) {
-          return acc;
-        }
-        if ((row.cells[10].textContent || '').trim().toLowerCase().indexOf('qa passed') == -1) {
           return acc;
         }
 
