@@ -139,6 +139,9 @@ function updateFixesFromPreviousBuilds(
         if ((row.cells[2].textContent || '').trim().toLowerCase() == 'ignore') {
           return acc;
         }
+        if ((row.cells[7].textContent || '').trim().toLowerCase().indexOf('conflict') != -1) {
+          return acc;
+        }
         if ((row.cells[9].textContent || '').trim().toLowerCase().indexOf('ignore') != -1) {
           return acc;
         }
