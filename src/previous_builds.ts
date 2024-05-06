@@ -1,6 +1,7 @@
 var pastTickets = <Record<string, string[]>> {};
 
 function getHotfixShortNames(hotfixes: string[]) : string[] {
+  debugger;
   return hotfixes.map(it => {
     return (it.indexOf('.q') != -1) ?
       it.substring(it.indexOf('-hotfix') + 1, it.length - 4) :
@@ -17,7 +18,7 @@ function getTicketBuildCountSummary(
   summaryElement.classList.add('nowrap', 'osb-ticket-builds-summary');
   summaryElement.setAttribute('title', getHotfixShortNames(hotfixes).join(', '));
 
-  summaryElement.innerHTML = getTicketLink('', ticketId, ticketId) + ' (' + hotfixes.length + ' build' + ((hotfixes.length == 1) ? '' : 's') + ')</span>';
+  summaryElement.innerHTML = getTicketLink('', ticketId, ticketId) + ' (' + getHotfixShortNames(hotfixes).join(', ') + ')';
 
   return summaryElement;
 }
@@ -140,6 +141,9 @@ function updateFixesFromPreviousBuilds(
           return acc;
         }
         if ((row.cells[7].textContent || '').trim().toLowerCase().indexOf('conflict') != -1) {
+          return acc;
+        }
+        if ((row.cells[7].textContent || '').trim().toLowerCase().indexOf('failed') != -1) {
           return acc;
         }
         if ((row.cells[9].textContent || '').trim().toLowerCase().indexOf('ignore') != -1) {
