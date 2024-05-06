@@ -5,7 +5,7 @@ function getHotfixShortNames(hotfixes: string[]) : string[] {
   return hotfixes.map(it => {
     return (it.indexOf('.q') != -1) ?
       it.substring(it.indexOf('-hotfix') + 1, it.length - 4) :
-      it.substring(it.indexOf('-') + 1, it.lastIndexOf('-'))
+      it.indexOf('build-') == 0 ? it : it.substring(it.indexOf('-') + 1, it.lastIndexOf('-'));
   });
 }
 
@@ -151,6 +151,10 @@ function updateFixesFromPreviousBuilds(
         }
 
         var hotfixId = (row.cells[12].textContent || '').trim();
+
+        if (hotfixId == '') {
+          hotfixId = 'build-' + (row.cells[1].textContent || '').trim();
+        }
 
         var newTickets = (next.getAttribute('title') || '').split(/\s*,\s*/g);
         for (var i = 0; i < newTickets.length; i++) {
