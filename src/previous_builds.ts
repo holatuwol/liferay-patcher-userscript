@@ -1,4 +1,4 @@
-var pastTickets = <Record<string, string[]>> {};
+var pastTicketsCache = <Record<string, Record<string, string[]>>> {};
 
 function getHotfixShortNames(hotfixes: string[]) : string[] {
   debugger;
@@ -24,10 +24,23 @@ function getTicketBuildCountSummary(
 }
 
 function checkFixesFromPreviousBuilds(
+  accountNode: HTMLInputElement,
   buildNameNode : HTMLTextAreaElement,
+  projectNode: HTMLSelectElement,
   previousBuildsInput: HTMLDivElement,
-  accountBuildsURL: string
 ) : number {
+
+  var queryString = getQueryString({
+    advancedSearch: true,
+    andOperator: true,
+    delta: 200,
+    patcherBuildAccountEntryCode: accountNode.value,
+    patcherProjectVersionIdFilter: projectNode.value
+  });
+
+  var accountBuildsURL = 'https://patcher.liferay.com/group/guest/patching/-/osb_patcher/accounts/view?' + queryString;
+
+  var pastTickets = pastTicketsCache[accountBuildsURL] || {};
 
   var currentTickets = new Set(
     (buildNameNode.value || '').split(/\s*,\s*/g)
@@ -76,7 +89,7 @@ function checkFixesFromPreviousBuilds(
     button.classList.add('btn', 'osb-patcher-button');
     button.onclick = function() {
       buildNameNode.value += ',' + missingTickets.join(',');
-      checkFixesFromPreviousBuilds(buildNameNode, previousBuildsInput, accountBuildsURL);
+      checkFixesFromPreviousBuilds(accountNode, buildNameNode, projectNode, previousBuildsInput);
       return false;
     };
 
@@ -120,8 +133,10 @@ function updateFixesFromPreviousBuilds(
 
   var accountBuildsURL = 'https://patcher.liferay.com/group/guest/patching/-/osb_patcher/accounts/view?' + queryString;
 
+  var pastTickets = pastTicketsCache[accountBuildsURL] || {};
+
   if (Object.keys(pastTickets).length > 0) {
-    checkFixesFromPreviousBuilds(buildNameNode, previousBuildsInput, accountBuildsURL);
+    checkFixesFromPreviousBuilds(accountNode, buildNameNode, projectNode, previousBuildsInput);
     return;
   }
 
@@ -134,7 +149,7 @@ function updateFixesFromPreviousBuilds(
     var container = document.implementation.createHTMLDocument().documentElement;
     container.innerHTML = xhr.responseText;
 
-    pastTickets = Array.from(container.querySelectorAll('td > a[title]')).
+    pastTicketsCache[accountBuildsURL] = Array.from(container.querySelectorAll('td > a[title]')).
       reduce((acc: Record<string, string[]>, next: HTMLAnchorElement) => {
         var row = <HTMLTableRowElement> next.closest('tr');
         if ((row.cells[2].textContent || '').trim().toLowerCase() == 'ignore') {
@@ -169,7 +184,7 @@ function updateFixesFromPreviousBuilds(
         return acc;
       }, {});
 
-     checkFixesFromPreviousBuilds(buildNameNode, previousBuildsInput, accountBuildsURL);
+     checkFixesFromPreviousBuilds(accountNode, buildNameNode, projectNode, previousBuildsInput);
   };
 
   xhr.send(null);
