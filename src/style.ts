@@ -149,6 +149,18 @@ tr.qa-analysis-needed.version-7210 td {
 tr.qa-analysis-unneeded {
   opacity: 0.3;
 }
+
+.shortened-content {
+  margin: 0.5em !important;
+}
+
+.shortened-content .fix-item::before {
+  content: ', ';
+}
+
+.shortened-content .fix-item a {
+  white-space: nowrap;
+}
 `;
 
 document.head.appendChild(styleElement);

@@ -27,6 +27,7 @@ var applyPatcherCustomizations = function() {
     addProductVersionFilter();
     addSecurityFixesSection();
     addEngineerComments();
+    updatePreviousBuildsContent();
   }
 
   compareBuildFixes();

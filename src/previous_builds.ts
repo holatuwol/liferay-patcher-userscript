@@ -245,3 +245,72 @@ function getFixesFromPreviousBuilds() : Element {
 
   return previousBuildsContainer;
 }
+
+function updatePreviousBuildsContent() : void {
+  if (document.location.pathname.indexOf('/accounts/view') == -1) {
+    return;
+  }
+
+  var buildsContainer = querySelector('patcherBuildsSearchContainer');
+
+  if (!buildsContainer) {
+    return;
+  }
+
+  var contentRows = <HTMLTableRowElement[]> Array.from(buildsContainer.querySelectorAll('tbody tr'));
+
+  var contentCells = contentRows.map(
+    (element: HTMLTableRowElement) => element.cells[6]
+  );
+
+  var fixes = contentCells.map(
+    (element: HTMLTableCellElement) => {
+      var fixesLink = element.querySelector('a');
+      var fixesList = fixesLink ? fixesLink.getAttribute('title') || '' : '';
+      return new Set(fixesList.split(/\s*,\s*/gi));
+  });
+
+  var parentIndices = fixes.map(
+    (element: Set<string>, index: number, array: Set<string>[]) => {
+      for (var i = index + 1; i < array.length; i++) {
+        if (contentRows[index].cells[5].textContent != contentRows[i].cells[5].textContent) {
+          continue;
+        }
+
+        if (Array.from(array[i]).filter(it => !element.has(it)).length == 0) {
+          return i;
+        }
+      }
+
+      return -1;
+    }
+  );
+
+  contentCells.forEach(
+    (element: HTMLTableCellElement, index: number) => {
+      var parent = parentIndices[index];
+
+      if (parent == -1) {
+        return;
+      }
+
+      var shortContentElement = document.createElement('p');
+      shortContentElement.classList.add('shortened-content')
+
+      shortContentElement.appendChild(document.createTextNode((contentRows[parent].cells[12].textContent || '').trim()));
+
+      Array.from(fixes[index]).filter(it => !fixes[parent].has(it)).forEach(it => {
+        var fixSpan = document.createElement('span');
+        fixSpan.classList.add('fix-item');
+
+        var fixLink = document.createElement('a');
+        fixLink.textContent = it;
+        fixLink.href = 'https://liferay.atlassian.net/browse/' + it;
+
+        fixSpan.appendChild(fixLink);
+        shortContentElement.appendChild(fixSpan);
+      })
+
+      element.append(shortContentElement);
+  });
+}
