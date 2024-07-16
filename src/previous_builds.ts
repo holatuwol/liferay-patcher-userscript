@@ -306,6 +306,7 @@ function updatePreviousBuildsContent() : void {
         var fixLink = document.createElement('a');
         fixLink.textContent = it;
         fixLink.href = 'https://liferay.atlassian.net/browse/' + it;
+        fixLink.target = '_blank';
 
         fixSpan.appendChild(fixLink);
         shortContentElement.appendChild(fixSpan);
