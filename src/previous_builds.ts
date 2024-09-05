@@ -297,7 +297,10 @@ function updatePreviousBuildsContent() : void {
       var shortContentElement = document.createElement('p');
       shortContentElement.classList.add('shortened-content')
 
-      shortContentElement.appendChild(document.createTextNode((contentRows[parent].cells[12].textContent || '').trim()));
+      shortContentElement.appendChild(document.createTextNode(
+        (contentRows[parent].cells[12].textContent || '').trim() ||
+          (contentRows[parent].cells[7].textContent || '').toLowerCase() + ' build ' + (contentRows[parent].cells[1].textContent || '').trim()
+      ));
 
       Array.from(fixes[index]).filter(it => !fixes[parent].has(it)).forEach(it => {
         var fixSpan = document.createElement('span');
