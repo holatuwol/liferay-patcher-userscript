@@ -67,7 +67,9 @@ function addProductVersionFilter() : void {
     liferayVersionSelect.appendChild(option);
   };
 
-  liferayVersionSelect.onchange = updateProductVersionSelect;
+  liferayVersionSelect.addEventListener('change', updateProductVersionSelect);
+  productVersionSelect.addEventListener('change', setTimeout.bind(null, updateProjectVersionOrder, 500));
+
   var productVersionSelectParentElement = <HTMLElement> productVersionSelect.parentElement;
   productVersionSelectParentElement.insertBefore(liferayVersionSelect, productVersionSelect);
 }
@@ -78,8 +80,15 @@ function addProductVersionFilter() : void {
  * and the remander are the fix pack level.
  */
 
-function getLiferayVersion(version : string) : number {
-  if (version.indexOf('fix-pack-de-') != -1) {
+function getLiferayVersion(version: string) : number {
+  if (version.indexOf('marketplace-') != -1) {
+    var pos = version.indexOf('-private');
+    pos = version.lastIndexOf('-', pos == -1 ? version.length : pos - 1);
+    var shortVersion = version.substring(pos + 1);
+
+    return parseInt(shortVersion) * 1000;
+  }
+  else if (version.indexOf('fix-pack-de-') != -1) {
     var pos = version.indexOf('-', 12);
     var deVersion = version.substring(12, pos);
     var shortVersion = version.substring(pos + 1);
@@ -121,17 +130,30 @@ function getLiferayVersion(version : string) : number {
 
     return parseInt(shortVersion.substring(0, pos)) * 1000 + parseInt(shortVersion.substring(pos + 3));
   }
+  else if (version.indexOf('-ga1') != -1) {
+    var shortVersionMatcher = <RegExpExecArray> /^([0-9]*)\.([0-9]*)\.([0-9]*)/.exec(version);
+    var shortVersion = shortVersionMatcher[1] + shortVersionMatcher[2];
+
+    return parseInt(shortVersion) * 1000 + parseInt(shortVersionMatcher[3]);
+  }
+  else if (version.indexOf('-u') != -1) {
+    var shortVersionMatcher = <RegExpExecArray> /[0-9]*\.[0-9]/.exec(version);
+    var shortVersion = shortVersionMatcher[0].replace('.', '');
+    var updateVersionMatcher = <RegExpExecArray> /-u([0-9]*)/.exec(version);
+    var updateVersion = updateVersionMatcher[1];
+
+    return parseInt(shortVersion) * 100 * 1000 + parseInt(updateVersion);
+  }
+  else if (version.indexOf('.q') != -1) {
+    var shortVersionMatcher = <RegExpExecArray> /([0-9][0-9][0-9][0-9])\.q([0-9])\.([0-9]*)/.exec(version);
+    var shortVersion = shortVersionMatcher[1] + shortVersionMatcher[2];
+    var updateVersion = shortVersionMatcher[3];
+
+    return parseInt(shortVersion) * 100 + parseInt(updateVersion);
+  }
   else {
-    var matcher = /[0-9]*\.[0-9]/.exec(version);
-
-    if (matcher) {
-      var shortVersion = matcher[0].replace('.', '');
-
-      return parseInt(shortVersion) * 100 * 1000;
-    }
-    else {
-      return 0;
-    }
+    console.log('unrecognized version pattern', version);
+    return 0;
   }
 }
 
