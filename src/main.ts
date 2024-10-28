@@ -32,7 +32,9 @@ var applyPatcherCustomizations = function() {
 
   compareBuildFixes();
 
-  setTimeout(updateFromQueryString, 500);
+  if (document.location.pathname.indexOf('/-/osb_patcher/fixes/create') != -1) {
+    setTimeout(updateFromQueryString, 500);
+  }
 };
 
 if (exportFunction) {
