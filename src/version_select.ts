@@ -161,8 +161,6 @@ function addProjectVersionFilter(
   }
 
   projectVersionSelect.addEventListener('change', function() {
-    var keywords = keywordsElement.value;
-
     document.location.href = 'https://patcher.liferay.com/group/guest/patching/-/osb_patcher?' +
       getQueryString({
         'advancedSearch': 'true',
@@ -170,7 +168,7 @@ function addProjectVersionFilter(
         'hideOldFixVersions': 'true',
         'hideOldFixVersionsCheckbox': 'true',
         'statusFilter': '100',
-        'patcherFixName': keywords,
+        'patcherFixName': '',
         'patcherProductVersionId': productVersionSelect.options[productVersionSelect.selectedIndex].value,
         'patcherProjectVersionIdFilter': projectVersionSelect.options[projectVersionSelect.selectedIndex].value
       })
