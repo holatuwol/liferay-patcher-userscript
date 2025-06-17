@@ -98,13 +98,15 @@ function getBuildMetadata(
   var buildLink = 'https://patcher.liferay.com/group/guest/patching/-/osb_patcher/builds/' + buildId;
   var branchName = (row.cells[3].textContent || '').trim();
   var branchType = branchName.indexOf('-private') != -1 ? 'private' : 'public';
+  var fixesText = row.cells[2].textContent || '';
 
   return {
     buildId: buildId,
     buildLink: buildLink,
     branchName: branchName,
     branchType: branchType,
-    fixes: getTicketLinks(row.cells[2].textContent || '', ''),
+    fixes: fixesText.split(',').map(x => x.trim()).sort(compareTicket),
+    fixesHTML: getTicketLinks(fixesText, ''),
     patcherFixId: null
   }
 }
@@ -125,7 +127,8 @@ function processChildBuilds(
   var rows = Array.from(container.querySelectorAll('table tbody tr')).filter(row => !row.classList.contains('lfr-template'));
 
   var childBuildsMetadata = rows.map(getBuildMetadata);
-  var childBuildFixesHTML = childBuildsMetadata.map(build => '<tr><th class="branch-type">' + getBuildLinkHTML(build) + '</th><td>' + build.fixes + '</td></tr>');
+
+  var childBuildFixesHTML = childBuildsMetadata.map(build => '<tr><th class="branch-type">' + getBuildLinkHTML(build) + '</th><td>' + build.fixesHTML + '</td><td></td></tr>');
 
   replaceNode(oldFixesNode, '<table class="table table-bordered table-hover"><tbody class="table-data">' + childBuildFixesHTML.join('') + '</tbody></table>');
   replaceGitHashes(childBuildsMetadata);
@@ -150,20 +153,28 @@ function replaceBuild() : void {
   var projectVersionSelect = <HTMLSelectElement> querySelector('patcherProjectVersionId');
   var branchName = (projectVersionSelect.options[projectVersionSelect.selectedIndex].textContent || '').trim();
   var branchType = branchName.indexOf('-private') != -1 ? 'private' : 'public';
+  var fixesText = buildNode.innerHTML;
 
   var build = {
     buildId: buildId,
     buildLink: buildLink,
     branchName: branchName,
     branchType: branchType,
-    fixes: getTicketLinks(buildNode.innerHTML, ''),
+    fixes: fixesText.split(',').map(x => x.trim()).sort(compareTicket),
+    fixesHTML: getTicketLinks(fixesText, ''),
     patcherFixId: null
   };
 
-  var childBuildFixesHTML = '<tr><th class="branch-type">' + getBuildLinkHTML(build) + '</th><td>' + build.fixes;
+  var childBuildFixesHTML = '<tr><th class="branch-type">' + getBuildLinkHTML(build) + '</th><td>' + build.fixesHTML + "</td></tr>";
+  var fixedInLaterVersionsHTML = '';
+  
+  if (branchName.indexOf(".q") != -1) {
+    var jql = "key in (" + build.fixes.join(",") + ") and cf[10886] ~ \"" + branchName.substring(0, branchName.lastIndexOf(".")) + ".*\"";
+    fixedInLaterVersionsHTML = "<tr><td colspan=\"2\"><a href=\"https://issues.liferay.com/issues/?jql=" + encodeURIComponent(jql) + "\" target=\"_blank\">check if fixed in newer quarterly releases</a></td></tr>";
+  }
 
   if (childBuildsButton.length == 0) {
-    replaceNode(buildNode, '<table class="table table-bordered table-hover"><tbody class="table-data">' + childBuildFixesHTML + '</tbody></table>');
+    replaceNode(buildNode, '<table class="table table-bordered table-hover"><tbody class="table-data">' + childBuildFixesHTML + fixedInLaterVersionsHTML + '</tbody></table>');
     replaceGitHashes([build]);
   }
   else {
@@ -186,6 +197,6 @@ function replaceBuild() : void {
     var excludedHTML = excludedFixes.sort(compareTicket).map(getTicketLink.bind(null, 'included-in-baseline')).join(', ');
 
     var excludedFixesHTML = '<tr><th class="branch-type">excluded</th><td>' + excludedHTML + '</td></tr>';
-    replaceNode(originalBuildNode, '<table class="table table-bordered table-hover"><tbody class="table-data">' + childBuildFixesHTML + excludedFixesHTML + '</tbody></table>');
+    replaceNode(originalBuildNode, '<table class="table table-bordered table-hover"><tbody class="table-data">' + childBuildFixesHTML + excludedFixesHTML + fixedInLaterVersionsHTML + '</tbody></table>');
   }
 }

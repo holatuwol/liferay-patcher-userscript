@@ -12,7 +12,8 @@ interface BuildMetadata {
     buildLink: string;
     branchName: string;
     branchType: string;
-    fixes: string;
+    fixes: string[]
+    fixesHTML: string;
     patcherFixId: string | null;
 }
 
