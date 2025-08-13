@@ -4,7 +4,7 @@ function getMissingTicketList(
 
   var fixPack = getFixPack();
 
-  if (!fixPack) {
+  if (!fixPack || fixPack.name.indexOf('marketplace-') == 0) {
     return [[],[],[],[]];
   }
 
