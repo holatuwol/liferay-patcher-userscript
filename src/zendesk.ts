@@ -19,15 +19,9 @@ function replaceLesaLink(target : string) {
       ticketId = ticketHREF.substring(ticketHREF.lastIndexOf('/') + 1);
     }
     else if (isNaN(parseInt(oldNode.value))) {
-      if ((oldNode.value.indexOf('LPP-') == 0) || (oldNode.value.indexOf('GROW-') == 0) || (oldNode.value.indexOf('LRP-') == 0)) {
-        ticketHREF = 'https://liferay.atlassian.net/browse/' + oldNode.value;
-        ticketId = oldNode.value;
-        jiraSearchLinkHREF = ticketHREF;
-      }
-      else {
-        ticketHREF = 'https://web.liferay.com/group/customer/support/-/support/ticket/' + oldNode.value;
-        ticketId = oldNode.value;
-      }
+      ticketHREF = 'https://liferay.atlassian.net/browse/' + oldNode.value;
+      ticketId = oldNode.value;
+      jiraSearchLinkHREF = ticketHREF;
     }
     else {
       ticketHREF = 'https://liferay-support.zendesk.com/agent/tickets/' + oldNode.value;
