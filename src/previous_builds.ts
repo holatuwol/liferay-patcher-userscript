@@ -246,16 +246,12 @@ function getFixesFromPreviousBuilds() : Element {
   return previousBuildsContainer;
 }
 
-function updatePreviousBuildsContent() : void {
+async function updatePreviousBuildsContent() : Promise<void> {
   if (document.location.pathname.indexOf('/accounts/view') == -1) {
     return;
   }
 
-  var buildsContainer = querySelector('patcherBuildsSearchContainer');
-
-  if (!buildsContainer) {
-    return;
-  }
+  var buildsContainer = await waitForElement('patcherBuildsSearchContainer');
 
   var contentRows = <HTMLTableRowElement[]> Array.from(buildsContainer.querySelectorAll('tbody tr'));
 

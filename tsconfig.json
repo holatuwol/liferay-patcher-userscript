@@ -6,6 +6,7 @@
     "outFile": "build/patcher.user.js",
     "skipLibCheck": true,
     "strictNullChecks": true,
+    "target": "es2017",
   },
   "include": [
     "user_script.ts",

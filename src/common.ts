@@ -6,6 +6,45 @@ var portletId = '1_WAR_osbpatcherportlet';
 var ns = '_' + portletId + '_';
 
 /**
+ * Standard implementation of debounce.
+ */
+
+function debounce(func: Function, delay: number): Function {
+  let timeoutId: number;
+  return function(...args: any[]) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(function() {
+      func.apply(this, args);
+    }, delay);
+  };
+}
+
+/**
+ * Utility function to wait for the given parent to have the given selector available.
+ */
+
+async function waitForElement(selector: string): Promise<Element> {
+	return new Promise(function(resolve) {
+		var observerCallback = <MutationCallback> debounce(function() {
+			const result = selector.indexOf(ns) != -1 ? document.querySelector(selector) : querySelector(selector);
+			if (result) {
+				observer.disconnect();
+				resolve(result);
+			}
+		}, 500);
+
+		const observer = new MutationObserver(observerCallback);
+
+		observerCallback([], observer);
+
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true,
+		});
+	})
+}
+
+/**
  * Utility function to convert an object into a query string with namespaced
  * parameter names.
  */
