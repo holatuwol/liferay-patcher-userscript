@@ -30,6 +30,14 @@ var applyPatcherCustomizations = function() {
     updatePreviousBuildsContent();
   }
 
+  // Runs after addProductVersionFilter, since on the create fix page
+  // that function clones the same patcherProjectVersionIdFilter
+  // template this sorts; sorting/filtering the template first would
+  // leak its data-has-filter-input marker onto the clone via
+  // cloneNode(true) and cause the visible clone to end up without a
+  // filter input of its own.
+  sortProjectVersionIdFilterSelects();
+
   compareBuildFixes();
 
   if (document.location.pathname.indexOf('/-/osb_patcher/fixes/create') != -1) {

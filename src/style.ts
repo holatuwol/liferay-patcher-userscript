@@ -16,19 +16,6 @@ a.included-in-baseline:hover {
   width: auto;
 }
 
-#_1_WAR_osbpatcherportlet_patcherProductVersionId option {
-  display: none;
-}
-
-#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="6.x"] option[data-liferay-version="6.x"],
-#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.0"] option[data-liferay-version="7.0"],
-#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.1"] option[data-liferay-version="7.1"],
-#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.2"] option[data-liferay-version="7.2"],
-#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.3"] option[data-liferay-version="7.3"],
-#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.4"] option[data-liferay-version="7.4"] {
-  display: block;
-}
-
 textarea[inputcssclass="osb-patcher-input-wide"] {
   height: 3em;
   width: 60em;
@@ -164,3 +151,34 @@ tr.qa-analysis-unneeded {
 `;
 
 document.head.appendChild(styleElement);
+
+/**
+ * These rules only make sense on the create fix page, since they depend
+ * on the data-liferay-version attributes that addProductVersionFilter
+ * tags the product version select and its options with, and that only
+ * happens on the create fix page. Applying them elsewhere (e.g. build
+ * creation) would hide every option in the product version select with
+ * nothing to reveal them, since nothing tags it with a
+ * data-liferay-version attribute there.
+ */
+
+if (isCreateFixPage()) {
+  var createFixStyleElement = document.createElement('style');
+
+  createFixStyleElement.textContent = `
+#_1_WAR_osbpatcherportlet_patcherProductVersionId option {
+  display: none;
+}
+
+#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="6.x"] option[data-liferay-version="6.x"],
+#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.0"] option[data-liferay-version="7.0"],
+#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.1"] option[data-liferay-version="7.1"],
+#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.2"] option[data-liferay-version="7.2"],
+#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.3"] option[data-liferay-version="7.3"],
+#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.4"] option[data-liferay-version="7.4"] {
+  display: block;
+}
+`;
+
+  document.head.appendChild(createFixStyleElement);
+}
