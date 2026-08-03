@@ -221,11 +221,7 @@ function addProjectVersionFilter(
 
   pruneProjectVersionOptions(projectVersionSelect, selectedVersion);
 
-  var sortedOptions = Array.from(projectVersionSelect.options).sort(compareLiferayVersions);
-
-  for (var i = 0; i < sortedOptions.length; i++) {
-    projectVersionSelect.appendChild(sortedOptions[i]);
-  }
+  groupAndSortOptions(projectVersionSelect);
 
   var versionContainer = <HTMLElement> productVersionSelect.parentElement;
   versionContainer.appendChild(projectVersionSelect);
@@ -369,6 +365,108 @@ function compareLiferayVersions(
 }
 
 /**
+ * Formats a 4-digit version suffix (e.g. "7010") to its semantic version
+ * counterpart (e.g. "7.0.10").
+ */
+
+function formatSuffixVersion(suffix: string) : string {
+  var first = parseInt(suffix.charAt(0));
+  var second = parseInt(suffix.charAt(1));
+  var lastTwo = parseInt(suffix.substring(2));
+
+  if ((first == 7) && (second <= 3)) {
+    return first + '.' + second + '.10';
+  }
+
+  return first + '.' + second + '.' + lastTwo;
+}
+
+/**
+ * Returns the corresponding option group label for a given version string.
+ * Supports quarterly releases, 6.1, 6.2, 7.4.13, suffix-based fix packs,
+ * and suffix-based marketplace releases.
+ */
+
+function getOptionGroup(optionText: string) : string | null {
+  if (optionText === '') {
+    return null;
+  }
+
+  // Quarterly Release
+  var qMatcher = /([0-9]{4})\.q([0-9]+)/.exec(optionText);
+  if (qMatcher) {
+    return qMatcher[0];
+  }
+
+  // Marketplace
+  if (optionText.indexOf('marketplace-') === 0) {
+    var suffixMatcher = /-([0-9]{4})(?:-private)?$/.exec(optionText);
+    if (suffixMatcher) {
+      return formatSuffixVersion(suffixMatcher[1]) + ' Marketplace';
+    }
+    return 'Marketplace';
+  }
+
+  // Fix Pack
+  if (optionText.indexOf('fix-pack-') === 0) {
+    var suffixMatcher = /-([0-9]{4})(?:-private)?$/.exec(optionText);
+    if (suffixMatcher) {
+      return formatSuffixVersion(suffixMatcher[1]);
+    }
+    return 'Fix Pack';
+  }
+
+  // 6.x
+  if (optionText.indexOf('6.1') === 0) {
+    return '6.1';
+  }
+
+  if (optionText.indexOf('6.2') === 0) {
+    return '6.2';
+  }
+
+  // 7.4
+  if (optionText.indexOf('7.4') !== -1) {
+    return '7.4.13';
+  }
+
+  return null;
+}
+
+/**
+ * Groups and sorts select options under <optgroup> elements, sorting all
+ * options/optgroups appropriately, and updating the select's DOM structure.
+ */
+
+function groupAndSortOptions(select: HTMLSelectElement): void {
+  var options = Array.from(select.options);
+  options.sort(compareLiferayVersions);
+
+  select.innerHTML = '';
+
+  var optgroupsMap: Record<string, HTMLOptGroupElement> = {};
+
+  for (var i = 0; i < options.length; i++) {
+    var option = options[i];
+    var optionText = (option.textContent || '').trim();
+    var optionGroup = getOptionGroup(optionText);
+
+    if (optionGroup) {
+      var optgroup = optgroupsMap[optionGroup];
+      if (!optgroup) {
+        optgroup = document.createElement('optgroup');
+        optgroup.setAttribute('label', optionGroup);
+        optgroupsMap[optionGroup] = optgroup;
+        select.appendChild(optgroup);
+      }
+      optgroup.appendChild(option);
+    } else {
+      select.appendChild(option);
+    }
+  }
+}
+
+/**
  * Returns whether every character of the pattern appears in the text in
  * the same order, though not necessarily contiguously (e.g. 'q413'
  * fuzzy-matches '7.4.13-q4'), the same style of matching used by fuzzy
@@ -379,6 +477,10 @@ function fuzzyMatch(
   text : string,
   pattern : string
 ) : boolean {
+
+  if (pattern === '') {
+    return true;
+  }
 
   var textIndex = 0;
 
@@ -407,6 +509,8 @@ function fuzzyMatch(
  * favor of a non-'test-' match, since they're not meant to be used by
  * default, but if 'test-' options are the only matches, one of them is
  * selected anyway rather than leaving nothing selected.
+ * Updates are applied to optgroups first, falling back to option-level
+ * matching only if no optgroups match.
  */
 
 function filterProjectVersionSelect(
@@ -415,23 +519,74 @@ function filterProjectVersionSelect(
 ) : void {
 
   var normalizedFilterText = filterText.trim().toLowerCase();
+
+  var optgroups = Array.from(projectVersionSelect.querySelectorAll('optgroup'));
+  var matchingOptgroups = optgroups.filter(function(optgroup) {
+    var label = (optgroup.getAttribute('label') || '').toLowerCase();
+    return fuzzyMatch(label, normalizedFilterText);
+  });
+
+  var optgroupMatchMode = normalizedFilterText !== '' && matchingOptgroups.length > 0;
+
   var firstMatchingOption : HTMLOptionElement | null = null;
   var firstMatchingTestOption : HTMLOptionElement | null = null;
 
-  for (var i = 0; i < projectVersionSelect.options.length; i++) {
-    var option = projectVersionSelect.options[i];
-    var optionText = (option.textContent || '').toLowerCase();
-    var matches = fuzzyMatch(optionText, normalizedFilterText);
+  if (optgroupMatchMode) {
+    for (var i = 0; i < optgroups.length; i++) {
+      var optgroup = optgroups[i];
+      var matches = matchingOptgroups.indexOf(optgroup) != -1;
+      optgroup.style.display = matches ? '' : 'none';
+    }
 
-    option.style.display = matches ? '' : 'none';
+    for (var i = 0; i < projectVersionSelect.options.length; i++) {
+      var option = projectVersionSelect.options[i];
+      var parentElement = option.parentElement;
+      var isInMatchingOptgroup = parentElement && parentElement.tagName.toLowerCase() === 'optgroup' && matchingOptgroups.indexOf(<HTMLOptGroupElement>parentElement) != -1;
 
-    if (matches && !firstMatchingOption) {
-      if (optionText.trim().indexOf('test-') != 0) {
-        firstMatchingOption = option;
+      if (isInMatchingOptgroup) {
+        option.style.display = '';
+        var optionText = (option.textContent || '').toLowerCase();
+        if (!firstMatchingOption) {
+          if (optionText.trim().indexOf('test-') != 0) {
+            firstMatchingOption = option;
+          }
+          else if (!firstMatchingTestOption) {
+            firstMatchingTestOption = option;
+          }
+        }
+      } else {
+        option.style.display = 'none';
       }
-      else if (!firstMatchingTestOption) {
-        firstMatchingTestOption = option;
+    }
+  } else {
+    for (var i = 0; i < projectVersionSelect.options.length; i++) {
+      var option = projectVersionSelect.options[i];
+      var optionText = (option.textContent || '').toLowerCase();
+      var matches = fuzzyMatch(optionText, normalizedFilterText);
+
+      option.style.display = matches ? '' : 'none';
+
+      if (matches && !firstMatchingOption) {
+        if (optionText.trim().indexOf('test-') != 0) {
+          firstMatchingOption = option;
+        }
+        else if (!firstMatchingTestOption) {
+          firstMatchingTestOption = option;
+        }
       }
+    }
+
+    for (var i = 0; i < optgroups.length; i++) {
+      var optgroup = optgroups[i];
+      var hasVisibleOption = false;
+      var childOptions = optgroup.getElementsByTagName('option');
+      for (var j = 0; j < childOptions.length; j++) {
+        if (childOptions[j].style.display !== 'none') {
+          hasVisibleOption = true;
+          break;
+        }
+      }
+      optgroup.style.display = hasVisibleOption ? '' : 'none';
     }
   }
 
@@ -457,11 +612,7 @@ function updateProjectVersionOrder() : void {
       return;
   }
 
-  var sortedOptions = Array.from(projectVersionSelect.options).sort(compareLiferayVersions);
-
-  for (var i = 0; i < sortedOptions.length; i++) {
-    projectVersionSelect.appendChild(sortedOptions[i]);
-  }
+  groupAndSortOptions(projectVersionSelect);
 
   var event = document.createEvent('HTMLEvents');
   event.initEvent('change', false, true);
@@ -483,11 +634,8 @@ function sortProjectVersionIdFilterSelects() : void {
 
   for (var i = 0; i < elements.length; i++) {
     var select = <HTMLSelectElement> elements[i];
-    var sortedOptions = Array.from(select.options).sort(compareLiferayVersions);
-
-    for (var j = 0; j < sortedOptions.length; j++) {
-      select.appendChild(sortedOptions[j]);
-    }
+    
+    groupAndSortOptions(select);
 
     addProjectVersionFilterInput(select);
   }
@@ -569,47 +717,65 @@ function updateFromQueryString() {
 
   var productVersionSelect = querySelector('patcherProductVersionId');
 
-  if (!productVersionSelect) {
-    return;
-  }
+  if (productVersionSelect) {
+    var re = new RegExp(ns + 'patcherProductVersionId=(\\d+)');
+    var match = re.exec(document.location.search);
 
-  var re = new RegExp(ns + 'patcherProductVersionId=(\\d+)');
-  var match = re.exec(document.location.search);
-
-  if (match) {
-    var patcherProductVersionId = match[1];
-    var option = <HTMLOptionElement | null> productVersionSelect.querySelector('option[value="' + patcherProductVersionId + '"]');
-
-    if (option) {
-      var liferayVersion = option.getAttribute('data-liferay-version');
-
-      option = <HTMLOptionElement | null> liferayVersionSelect.querySelector('option[value="' + liferayVersion + '"]');
+    if (match) {
+      var patcherProductVersionId = match[1];
+      var option = <HTMLOptionElement | null> productVersionSelect.querySelector('option[value="' + patcherProductVersionId + '"]');
 
       if (option) {
-        option.selected = true;
-        updateProductVersionSelect();
+        var liferayVersion = option.getAttribute('data-liferay-version');
+
+        option = <HTMLOptionElement | null> liferayVersionSelect.querySelector('option[value="' + liferayVersion + '"]');
+
+        if (option) {
+          option.selected = true;
+          updateProductVersionSelect();
+        }
       }
     }
   }
 
   var projectVersionSelect = querySelector('patcherProjectVersionId');
 
-  if (!projectVersionSelect) {
-    return;
+  if (projectVersionSelect) {
+    re = new RegExp(ns + 'patcherProjectVersionId=(\\d+)');
+    match = re.exec(document.location.search);
+
+    if (match) {
+      var patcherProjectVersionId = match[1];
+      var option = <HTMLOptionElement | null> projectVersionSelect.querySelector('option[value="' + patcherProjectVersionId + '"]');
+
+      if (option) {
+        option.selected = true;
+      }
+      else {
+        setTimeout(updateFromQueryString, 500);
+      }
+    }
   }
 
-  re = new RegExp(ns + 'patcherProjectVersionId=(\\d+)');
-  match = re.exec(document.location.search);
+  var autoFixCheckbox = <HTMLInputElement | null> querySelector('autoFixCheckbox');
 
-  if (match) {
-    var patcherProjectVersionId = match[1];
-    var option = <HTMLOptionElement | null> projectVersionSelect.querySelector('option[value="' + patcherProjectVersionId + '"]');
+  for (var inputName of ['committish', 'gitRemoteURL']) {
+    var input = <HTMLInputElement | null> querySelector(inputName);
+    if (!input) {
+      continue;
+    }
 
-    if (option) {
-      option.selected = true;
+    re = new RegExp(ns + inputName + '=([^&]+)');
+    match = re.exec(document.location.search);
+
+    if (!match) {
+      continue;
     }
-    else {
-      setTimeout(updateFromQueryString, 500);
+
+    if (autoFixCheckbox && autoFixCheckbox.checked) {
+      autoFixCheckbox.click();
     }
+
+    input.value = match[1];
   }
 }
