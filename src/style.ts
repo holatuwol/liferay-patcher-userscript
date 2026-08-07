@@ -152,20 +152,10 @@ tr.qa-analysis-unneeded {
 
 document.head.appendChild(styleElement);
 
-/**
- * These rules only make sense on the create fix page, since they depend
- * on the data-liferay-version attributes that addProductVersionFilter
- * tags the product version select and its options with, and that only
- * happens on the create fix page. Applying them elsewhere (e.g. build
- * creation) would hide every option in the product version select with
- * nothing to reveal them, since nothing tags it with a
- * data-liferay-version attribute there.
- */
+if (document.location.pathname.indexOf('/create') != -1) {
+  var createStyleElement = document.createElement('style');
 
-if (isCreateFixPage()) {
-  var createFixStyleElement = document.createElement('style');
-
-  createFixStyleElement.textContent = `
+  createStyleElement.textContent = `
 #_1_WAR_osbpatcherportlet_patcherProductVersionId option {
   display: none;
 }
@@ -180,5 +170,5 @@ if (isCreateFixPage()) {
 }
 `;
 
-  document.head.appendChild(createFixStyleElement);
+  document.head.appendChild(createStyleElement);
 }

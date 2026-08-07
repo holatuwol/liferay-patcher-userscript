@@ -5,6 +5,8 @@ declare interface AUI {
 interface Liferay {
     Service: any;
     Language: any;
+    fire: (string) => void;
+    on: (string, Function) => void;
 }
 
 interface BuildMetadata {

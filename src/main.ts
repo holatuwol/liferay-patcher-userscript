@@ -3,6 +3,11 @@
 var applyPatcherCustomizations = function() {
   highlightAnalysisNeededBuilds();
 
+  if ((document.location.pathname.indexOf('/-/osb_patcher/fixes/create') != -1) ||
+    (document.location.pathname.indexOf('/-/osb_patcher/builds/create') != -1)) {
+    Liferay.on('projectVersionIdReady', updateFromQueryString);
+  }
+
   var activeTab = document.querySelector('.tab.active');
 
   if (activeTab && ((activeTab.textContent || '').trim() != 'QA Builds')) {
@@ -39,10 +44,6 @@ var applyPatcherCustomizations = function() {
   sortProjectVersionIdFilterSelects();
 
   compareBuildFixes();
-
-  if (document.location.pathname.indexOf('/-/osb_patcher/fixes/create') != -1) {
-    setTimeout(updateFromQueryString, 500);
-  }
 };
 
 if (exportFunction) {

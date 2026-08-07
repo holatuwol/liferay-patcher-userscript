@@ -18,14 +18,6 @@ function replaceReadOnlySelect(
   }
 }
 
-/**
- * Returns whether the current page is the "create fix" page.
- */
-
-function isCreateFixPage() : boolean {
-  return document.location.pathname.indexOf('/-/osb_patcher/fixes/create') != -1;
-}
-
 var liferayVersions = ['', '6.x', '7.0', '7.1', '7.2', '7.3', '7.4'];
 
 /**
@@ -106,7 +98,7 @@ function addProductVersionFilter() : void {
     return;
   }
 
-  if (!isCreateFixPage()) {
+  if (document.location.pathname.indexOf('/create') == -1) {
     return;
   }
 
@@ -198,6 +190,8 @@ function addProjectVersionFilterInput(
   projectVersionSelectParentElement.insertBefore(projectVersionFilterInput, projectVersionSelect);
 
   filterProjectVersionSelect(projectVersionSelect, '');
+
+  Liferay.fire('projectVersionIdReady');
 }
 
 function addProjectVersionFilter(
