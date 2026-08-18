@@ -81,6 +81,8 @@ function getSelectedValue(target : string) : string {
  * their web browser.
  */
 
+var usMonths = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
 function replaceDate(target : string) : void {
   var labelNode = document.querySelector('label[for="' + ns + target + '"]');
 
@@ -95,15 +97,29 @@ function replaceDate(target : string) : void {
   }
 
   var dateNode = containerNode.childNodes[2];
-  var oldDateText = dateNode.textContent;
+  var englishUtcStr = dateNode.textContent;
 
-  if (!oldDateText) {
+  if (!englishUtcStr) {
   	return;
   }
 
-  var dateString = new Date(oldDateText.trim() + ' GMT-0000').toString();
+  var [usMonthStr, dayStr, yearStr, hourStr, minuteStr, secondStr, ampmStr] = englishUtcStr.trim().split(/[\s:,]+/);
 
-  dateNode.textContent = dateString;
+  var month = usMonths.indexOf(usMonthStr.toLowerCase());
+
+  var hour24 = parseInt(hourStr);
+
+  if (ampmStr == 'AM' && hour24 == 12) {
+    hour24 = 0;
+  }
+
+  if (ampmStr == 'PM' && hour24 < 12) {
+    hour24 += 12;
+  }
+
+  var date = new Date(Date.UTC(parseInt(yearStr), month, parseInt(dayStr), hour24, parseInt(minuteStr), parseInt(secondStr)));
+
+  dateNode.textContent = date.toString();
 }
 
 /**
