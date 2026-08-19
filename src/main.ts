@@ -14,7 +14,6 @@ var applyPatcherCustomizations = function() {
     rearrangeColumns();
     replaceJenkinsLinks();
     replacePopupWindowLinks();
-    addBaselineToBuildTemplate();
     replaceHotfixLink('debug');
     replaceHotfixLink('hotfix');
     replaceHotfixLink('ignore');

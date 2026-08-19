@@ -186,10 +186,19 @@ function addProjectVersionFilterInput(
     filterProjectVersionSelect(projectVersionSelect, projectVersionFilterInput.value);
   });
 
+  var projectSelectedValue = projectVersionSelect.selectedIndex > -1 ? projectVersionSelect.options[projectVersionSelect.selectedIndex].value : null;
+
   var projectVersionSelectParentElement = <HTMLElement> projectVersionSelect.parentElement;
   projectVersionSelectParentElement.insertBefore(projectVersionFilterInput, projectVersionSelect);
 
   filterProjectVersionSelect(projectVersionSelect, '');
+
+  if (projectSelectedValue) {
+    var projectSelectedOption = <HTMLOptionElement | null> projectVersionSelect.querySelector('option[value="' + projectSelectedValue + '"]');
+    if (projectSelectedOption) {
+      projectSelectedOption.selected = true;
+    }
+  }
 
   Liferay.fire('projectVersionIdReady');
 }

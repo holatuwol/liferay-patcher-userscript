@@ -22,24 +22,3 @@ function replacePopupWindowLinks() : void {
     onclickAttribute.value = onclickValue;
   }
 }
-
-/**
- * Update the link to "Use as Build Template" to include additional
- * parameters so that they can be auto-selected.
- */
-
-function addBaselineToBuildTemplate() : void {
-  var baselineLinks = Array.from(document.querySelectorAll('.taglib-text-icon'))
-  	.filter(function(x) { return (x.textContent || '').toLowerCase() == 'use as build template'; });
-
-  if (baselineLinks.length != 1) {
-    return;
-  }
-
-  var buildTemplateAnchor = <HTMLAnchorElement> baselineLinks[0].parentElement;
-
-  buildTemplateAnchor.href += '&' + getQueryString({
-    'patcherProductVersionId': getSelectedValue('patcherProductVersionId'),
-    'patcherProjectVersionId': getSelectedValue('patcherProjectVersionId')
-  });
-}
