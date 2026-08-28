@@ -5,6 +5,7 @@ declare interface AUI {
 interface Liferay {
     Service: any;
     Language: any;
+    authToken: string;
     fire: (string) => void;
     on: (string, Function) => void;
 }

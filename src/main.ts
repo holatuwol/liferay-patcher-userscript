@@ -9,8 +9,9 @@ var applyPatcherCustomizations = function() {
   }
 
   var activeTab = document.querySelector('.tab.active');
+  var activeTabName = activeTab ? (activeTab.textContent || '').trim() : '';
 
-  if (activeTab && ((activeTab.textContent || '').trim() != 'QA Builds')) {
+  if (activeTabName && (activeTabName != 'QA Builds')) {
     rearrangeColumns();
     replaceJenkinsLinks();
     replacePopupWindowLinks();
@@ -29,9 +30,12 @@ var applyPatcherCustomizations = function() {
     replaceDate('modifiedDate');
     replaceDate('statusDate');
     addProductVersionFilter();
-    addSecurityFixesSection();
     addEngineerComments();
     updatePreviousBuildsContent();
+
+    if (activeTabName == 'Fixes') {
+      addBulkSearchTab();
+    }
   }
 
   // Runs after addProductVersionFilter, since on the create fix page

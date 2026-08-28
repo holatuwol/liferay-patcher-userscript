@@ -23,9 +23,9 @@
     "src/hotfix.ts",
     "src/zendesk.ts",
     "src/support_qa.ts",
-    "src/security.ts",
     "src/comments.ts",
     "src/previous_builds.ts",
+    "src/bulk_search.ts",
     "src/main.ts"
   ]
 }

@@ -227,3 +227,98 @@ function getTicketLinks(
 
   return text.split(',').map(x => x.trim()).sort(compareTicket).map(getTicketLink.bind(null, className)).join(', ');
 }
+
+var spinnerMax = 0;
+var spinnerCurrent = 0;
+
+/**
+ * Adds a spinner
+ */
+function addSpinner(max?: number) {
+    var spinnerOverlay = document.createElement('div');
+    spinnerOverlay.setAttribute('id', 'spinner-overlay');
+    spinnerOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent background */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999; /* Ensures it sits above other content */
+        transition: opacity 0.2s ease-in-out;
+      `;
+
+    var spinnerContainer = document.createElement('div');
+    spinnerContainer.style.cssText = `
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    `;
+
+    var spinner = document.createElement('div');
+    spinner.style.cssText = `
+        width: 80px;
+        height: 80px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db; /* Color of spinning arc */
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      `;
+
+    spinnerContainer.appendChild(spinner);
+
+    if (max !== undefined && max !== null) {
+        spinnerMax = max;
+        spinnerCurrent = 0;
+
+        var spinnerProgress = document.createElement('div');
+        spinnerProgress.setAttribute('id', 'spinner-progress');
+        spinnerProgress.style.cssText = `
+            position: absolute;
+            font-family: sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        `;
+        spinnerProgress.textContent = `0/${max}`;
+        spinnerContainer.appendChild(spinnerProgress);
+    }
+
+    spinnerOverlay.appendChild(spinnerContainer);
+
+    document.body.appendChild(spinnerOverlay);
+}
+
+/**
+ * Updates the spinner progress
+ */
+function updateSpinner(step: number = 1) {
+    spinnerCurrent += step;
+    var spinnerProgress = document.getElementById('spinner-progress');
+    if (spinnerProgress) {
+        spinnerProgress.textContent = `${spinnerCurrent}/${spinnerMax}`;
+    }
+}
+
+/**
+ * Updates the spinner progress (alias of updateSpinner)
+ */
+function updateSpinnerProgress(step: number = 1) {
+    updateSpinner(step);
+}
+
+/**
+ * Adds a spinner
+ */
+function removeSpinner() {
+  var spinnerOverlay = document.getElementById('spinner-overlay');
+  if (!spinnerOverlay) {
+    return;
+  }
+
+  spinnerOverlay.remove();
+}
