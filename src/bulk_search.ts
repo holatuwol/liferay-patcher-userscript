@@ -16,15 +16,7 @@ function getProjectVersionsFromDOM(): Record<string, string> {
 
 var patcherFixVersionsCache: Record<string, Set<string>> = {};
 
-async function getPatcherFixVersions(token: string, tokensSet: Set<string>): Promise<{token: string, foundVersions: Set<string>}> {
-  if (patcherFixVersionsCache[token]) {
-    updateSpinner(1);
-    return {
-      token,
-      foundVersions: patcherFixVersionsCache[token],
-    };
-  }
-
+async function getPatcherFixVersionsPage(token: string, page: number): Promise<Response> {
   var params = new URLSearchParams();
   params.append('p_p_id', portletId);
   params.append('p_p_state', 'exclusive');
@@ -35,17 +27,44 @@ async function getPatcherFixVersions(token: string, tokensSet: Set<string>): Pro
   params.append(ns + 'delta', '200');
 
   var parser = new DOMParser();
-  var hasMorePages = true;
-  var foundVersions: string[] = [];
+  params.set(ns + 'cur', String(page));
 
-  for (var page = 1; hasMorePages; page++) {
-    params.set(ns + 'cur', String(page));
+  return await fetch('/group/guest/patching?' + params.toString());
+}
 
-    var response = await fetch('/group/guest/patching?' + params.toString());
+async function getPatcherFixVersions(token: string, tokensSet: Set<string>): Promise<{token: string, foundVersions: Set<string>}> {
+  if (patcherFixVersionsCache[token]) {
+    updateSpinner(1);
+    return {
+      token,
+      foundVersions: patcherFixVersionsCache[token],
+    };
+  }
 
-    var responseDocument = parser.parseFromString(await response.text(), 'text/html');
+  var parser = new DOMParser();
 
-    var newFoundVersions = Array.from(responseDocument.querySelectorAll('#' + ns + 'patcherFixsSearchContainerSearchContainer table tbody tr'))
+  var response = await getPatcherFixVersionsPage(token, 1);
+
+  var initialResponseDocument = parser.parseFromString(await response.text(), 'text/html');
+
+  var lastButton = initialResponseDocument.querySelector('#' + ns + 'patcherFixsSearchContainerPageIteratorBottom ul.lfr-pagination-buttons li.last');
+
+  var responseDocuments = [initialResponseDocument];
+
+  if (lastButton && !lastButton.classList.contains('disabled')) {
+    var lastLink = <HTMLAnchorElement> lastButton.querySelector('a');
+    var lastURLParams = new URL(lastLink.href).searchParams;
+    var pageCount = parseInt(lastURLParams.get(ns + 'cur') || '1');
+
+    var responseTexts = await Promise.all(
+      Array.from({ length: pageCount - 1 }, (_, index) => getPatcherFixVersionsPage(token, index + 2).then(it => it.text()))
+    );
+
+    responseDocuments = responseDocuments.concat(responseTexts.map(it => parser.parseFromString(it, 'text/html')));
+  }
+
+  var foundVersions = responseDocuments.reduce((acc, next) => {
+    var newFoundVersions = <string[]> Array.from(next.querySelectorAll('#' + ns + 'patcherFixsSearchContainerSearchContainer table tbody tr'))
         // .filter(row => {
         //     var contentCell = row.querySelector('td:nth-child(3)');
         //     if (!contentCell || !contentCell.textContent) {
@@ -62,16 +81,14 @@ async function getPatcherFixVersions(token: string, tokensSet: Set<string>): Pro
             return versionCell.textContent.trim();
         })
         .filter(it => it);
-    
-    Array.prototype.push.apply(foundVersions, newFoundVersions);
-    
-    hasMorePages = !!responseDocument.querySelector('#' + ns + 'patcherFixsSearchContainerPageIteratorBottom ul.lfr-pagination-buttons li.last:not(.disabled)');
-  }
 
-  updateSpinner(1);
-  
+    return acc.concat(newFoundVersions);
+  }, <string[]> []);
+
   var resultSet = new Set(foundVersions);
   patcherFixVersionsCache[token] = resultSet;
+
+  updateSpinner(1);
 
   return {
     token,
@@ -129,25 +146,26 @@ function getPatcherPortalFixSearchLink(tokens: string[], version: string, projec
 
 var securityFixVersions: Record<string, Record<string, Record<string, string[]>>> | null = null;
 
-function compareVersions(a: string, b: string): number {
-  const aParts = a.split('.');
-  const bParts = b.split('.');
-  for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-    const aStr = aParts[i] || '';
-    const bStr = bParts[i] || '';
-    const aNum = parseInt(aStr, 10);
-    const bNum = parseInt(bStr, 10);
-    if (!isNaN(aNum) && !isNaN(bNum)) {
-      if (aNum !== bNum) {
-        return aNum - bNum;
-      }
-    } else {
-      if (aStr !== bStr) {
-        return aStr < bStr ? -1 : 1;
-      }
-    }
+function compareQuarterlyVersions(a: string | null, b: string | null): number {
+  if (!a) return -1;
+  const aMatch = a.toLowerCase().match(/(\d{4})\.q([1-4])\.(\d+)/);
+  if (!aMatch) return -1;
+  const [, aYearStr, aQuarterStr, aPatchStr] = aMatch;
+
+  if (!b) return 1;
+  const bMatch = b.toLowerCase().match(/(\d{4})\.q([1-4])\.(\d+)/);
+  if (!bMatch) return 1;
+  const [, bYearStr, bQuarterStr, bPatchStr] = bMatch;
+
+  if (aYearStr !== bYearStr) {
+    return parseInt(aYearStr) - parseInt(bYearStr);
   }
-  return 0;
+
+  if (aQuarterStr != bQuarterStr) {
+    return parseInt(aQuarterStr) - parseInt(bQuarterStr);
+  }
+
+  return parseInt(aPatchStr) - parseInt(bPatchStr);
 }
 
 function isFixInPrefix(fixVer: string, prefix: string): boolean {
@@ -165,7 +183,10 @@ async function getSecurityFixVersions(): Promise<Record<string, Record<string, R
   return securityFixVersions!;
 }
 
-function getCleanVersionFromFix(fixVer: string): string | null {
+function getCleanVersionFromFix(fixVer: string | null): string | null {
+  if (!fixVer) {
+    return null;
+  }
   const match = fixVer.toLowerCase().match(/(\d{4})\.q([1-4])\.(\d+)/);
   if (match) {
     return `${match[1]}.q${match[2]}.${match[3]}`;
@@ -173,18 +194,138 @@ function getCleanVersionFromFix(fixVer: string): string | null {
   return null;
 }
 
+function isTicketInSecurityData(ticket: string, data: Record<string, Record<string, Record<string, string[]>>>): boolean {
+  for (const v of Object.keys(data)) {
+    const versionObj = data[v];
+    for (const cat of ['sev-1', 'sev-2', 'sev-3', 'unknown']) {
+      if (versionObj[cat] && versionObj[cat][ticket]) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+async function getJiraFixVersions(versionPrefix: string, tokens: string[]): Promise<Record<string, string | null>> {
+  if (tokens.length === 0) {
+    return {};
+  }
+
+  try {
+    await new Promise((resolve, reject) => {
+      GM.xmlHttpRequest({
+        method: 'GET',
+        url: 'https://liferay.atlassian.net/rest/api/3/myself',
+        responseType: 'json',
+        onload: function(r: XMLHttpRequest) {
+          if (r.status == 200) {
+            resolve(r.response);
+          }
+          else {
+            reject(new Error("Empty response"));
+          }
+        },
+        onerror: reject,
+        ontimeout: reject,
+      });
+    });
+    updateSpinner(1);
+  }
+  catch (e) {
+    return {};
+  }
+
+  const result: Record<string, string | null> = {};
+  for (const token of tokens) {
+    result[token] = null;
+  }
+
+  const chunkSize = 100;
+  for (let i = 0; i < tokens.length; i += chunkSize) {
+    const chunk = tokens.slice(i, i + chunkSize);
+    const validChunk = chunk.filter(t => /^[a-zA-Z0-9-]+$/.test(t));
+    if (validChunk.length === 0) {
+      continue;
+    }
+    const jql = `key in (${validChunk.join(',')})`;
+    const url = `https://liferay.atlassian.net/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=fixVersions&maxResults=100`;
+
+    var issues: JiraIssue[] = await new Promise((resolve, reject) => {
+      GM.xmlHttpRequest({
+        method: 'GET',
+        url,
+        responseType: 'json',
+        onload: function(r: JiraSearchRequest) {
+          if (r.response.issues) {
+            resolve(r.response.issues);
+          }
+          else {
+            reject(new Error("Empty response"));
+          }
+        },
+        onerror: reject,
+        ontimeout: reject,
+      });
+    });
+
+    for (const issue of issues) {
+      const key = issue.key;
+      const fields = issue.fields;
+      if (fields && fields.fixVersions) {
+        const fixVersions = <string[]> fields.fixVersions
+          .map(fv => getCleanVersionFromFix(fv.name.toUpperCase()))
+          .filter(name => name);
+
+        var matchingVersions = fixVersions
+          .filter(name => isFixInPrefix(name, versionPrefix));
+        
+        if (matchingVersions.length == 0) {
+          matchingVersions = fixVersions
+            .filter(name => compareQuarterlyVersions(versionPrefix, name) < 0);
+        }
+
+        if (matchingVersions.length > 0) {
+          matchingVersions.sort(compareQuarterlyVersions);
+          result[key] = matchingVersions[0];
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+function isFixed(targetVersion: string | null, prefix: string, selectedVersion: string): boolean {
+  if (!targetVersion) {
+    return false;
+  }
+  if (selectedVersion === 'All') {
+    return targetVersion.startsWith(prefix);
+  }
+  return compareQuarterlyVersions(selectedVersion, targetVersion) >= 0;
+}
+
 function getTicketSecurityStatus(
   ticket: string,
   prefix: string,
   selectedVersion: string,
-  data: Record<string, Record<string, Record<string, string[]>>>
+  data: Record<string, Record<string, Record<string, string[]>>>,
+  jiraFixVersion: string | null
 ): string {
   const prefixVersions = Object.keys(data)
     .filter(v => v.indexOf(prefix + '.') === 0)
-    .sort(compareVersions);
+    .sort(compareQuarterlyVersions);
 
+  const canonicalBranchFix = getCleanVersionFromFix(jiraFixVersion) || jiraFixVersion;
   if (prefixVersions.length === 0) {
-    return `<span style="color: #777;">N/A (No data for baseline prefix)</span>`;
+    if (jiraFixVersion) {
+      if (isFixed(canonicalBranchFix, prefix, selectedVersion)) {
+        return `<span class="bulk-search-status-fixed">Fixed</span> (in ${jiraFixVersion} via Jira)`;
+      } else {
+        return `<span class="bulk-search-status-not-fixed">Not Fixed</span> (Target: ${jiraFixVersion} via Jira)`;
+      }
+    }
+    return `<span class="bulk-search-status-na">N/A (No data for baseline prefix)</span>`;
   }
 
   // 1. Gather all targets and severity for this ticket across this prefix
@@ -208,7 +349,18 @@ function getTicketSecurityStatus(
   }
 
   if (allTargets.length === 0) {
-    return `<span style="color: #777;">N/A (Not security-relevant or not listed)</span>`;
+    if (jiraFixVersion) {
+      if (isFixed(canonicalBranchFix, prefix, selectedVersion)) {
+        if (selectedVersion === 'All') {
+          return `<span class="bulk-search-status-fixed">Fixed</span> (in ${jiraFixVersion} via Jira)`;
+        } else {
+          return `<span class="bulk-search-status-fixed">Fixed</span> (since ${jiraFixVersion} via Jira)`;
+        }
+      } else {
+        return `<span class="bulk-search-status-not-fixed">Not Fixed</span> (Target: ${jiraFixVersion} via Jira)`;
+      }
+    }
+    return `<span class="bulk-search-status-na">N/A (Not security-relevant or not listed)</span>`;
   }
 
   // Filter targets belonging to our baseline prefix
@@ -221,35 +373,34 @@ function getTicketSecurityStatus(
       .filter(item => item.clean !== null) as { original: string; clean: string }[];
 
     if (parsedPrefixTargets.length > 0) {
-      parsedPrefixTargets.sort((a, b) => compareVersions(a.clean, b.clean));
+      parsedPrefixTargets.sort((a, b) => compareQuarterlyVersions(a.clean, b.clean));
       const latestPrefixTarget = parsedPrefixTargets[parsedPrefixTargets.length - 1];
       const canonicalBranchFix = latestPrefixTarget.clean;
-      const originalTargetName = latestPrefixTarget.original;
 
-      if (selectedVersion === 'All') {
-        return `<span style="color: #0056b3; font-weight: bold;">Fixed</span> (in ${originalTargetName})`;
-      } else {
-        if (compareVersions(selectedVersion, canonicalBranchFix) < 0) {
-          return `<span style="color: #d35400; font-weight: bold;">Not Fixed</span> (Severity: ${severity}, Target: ${originalTargetName})`;
+      if (isFixed(canonicalBranchFix, prefix, selectedVersion)) {
+        if (selectedVersion === 'All') {
+          return `<span class="bulk-search-status-fixed">Fixed</span> (in ${canonicalBranchFix})`;
         } else {
-          return `<span style="color: #0056b3; font-weight: bold;">Fixed</span> (since ${originalTargetName})`;
+          return `<span class="bulk-search-status-fixed">Fixed</span> (since ${canonicalBranchFix})`;
         }
+      } else {
+        return `<span class="bulk-search-status-not-fixed">Not Fixed</span> (Severity: ${severity}, Target: ${canonicalBranchFix})`;
       }
     }
   }
 
   // If none exist on prefix (or could not parse), point to the latest future baseline
-  const parsedFutureTargets = allTargets
-    .map(t => ({ original: t, clean: getCleanVersionFromFix(t) }))
-    .filter(item => item.clean !== null) as { original: string; clean: string }[];
+  const parsedFutureTargets = <string[]> allTargets
+    .map(t => getCleanVersionFromFix(t))
+    .filter(item => item !== null);
 
   if (parsedFutureTargets.length > 0) {
-    parsedFutureTargets.sort((a, b) => compareVersions(a.clean, b.clean));
+    parsedFutureTargets.sort((a, b) => compareQuarterlyVersions(a, b));
     const latestFutureTarget = parsedFutureTargets[parsedFutureTargets.length - 1];
-    return `<span style="color: #d35400; font-weight: bold;">Not Fixed</span> (Severity: ${severity}, Target: ${latestFutureTarget.original})`;
+    return `<span class="bulk-search-status-not-fixed">Not Fixed</span> (Severity: ${severity}, Target: ${latestFutureTarget})`;
   }
 
-  return `<span style="color: #d35400; font-weight: bold;">Not Fixed</span> (Severity: ${severity}, Target: ${allTargets.join(', ')})`;
+  return `<span class="bulk-search-status-not-fixed">Not Fixed</span> (Severity: ${severity}, Target: ${allTargets.join(', ')})`;
 }
 
 function generateBulkSearchContentArea(): HTMLDivElement {
@@ -265,7 +416,7 @@ function generateBulkSearchContentArea(): HTMLDivElement {
 
   contentArea.innerHTML = `
     <h3>Bulk Search</h3>
-    <p>This feature was added to make it easier to see if fixes exist on patcher for various tickets (LPD, LPE, CVEs), and which baselines they exist for. However, it's naive; the fix might have been added with other tokens and so even though the fix <em>exists</em>, it might require additional tokens for the build to go through, or you might fight with patcher's greedy merge algorithm all along the way.</p>
+    <p>This feature was added to make it easier to see if fixes exist on patcher for various tickets (LPD, LPE, CVE), and which baselines they exist for. However, it's naive; the fix might have been added with other tokens and so even though the fix <em>exists</em>, it might require additional tokens for the build to go through, or you might fight with patcher's greedy merge algorithm all along the way.</p>
     <div style="margin-bottom: 15px;">
       <label for="bulk-tokens-input" style="font-weight: bold; display: block; margin-bottom: 5px;">
         Tickets (comma or newline separated):
@@ -275,7 +426,7 @@ function generateBulkSearchContentArea(): HTMLDivElement {
     <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: flex-end;">
       <div>
         <label for="bulk-baseline-prefix" style="font-weight: bold; display: block; margin-bottom: 5px;">
-          Security Baseline (Optional):
+          Check Fix Status (Optional):
         </label>
         <select id="bulk-baseline-prefix" style="padding: 4px; border: 1px solid #ccc; border-radius: 4px; min-width: 150px;">
           <option value="">None</option>
@@ -283,7 +434,7 @@ function generateBulkSearchContentArea(): HTMLDivElement {
       </div>
       <div id="bulk-baseline-version-container" style="display: none;">
         <label for="bulk-baseline-version" style="font-weight: bold; display: block; margin-bottom: 5px;">
-          Baseline Version:
+          Fixed Version:
         </label>
         <select id="bulk-baseline-version" style="padding: 4px; border: 1px solid #ccc; border-radius: 4px; min-width: 150px;">
           <option value="All">All</option>
@@ -304,7 +455,7 @@ function generateBulkSearchContentArea(): HTMLDivElement {
 
   getSecurityFixVersions().then(data => {
     const prefixes = Array.from(new Set(Object.keys(data).map(k => k.split('.').slice(0, 2).join('.'))))
-      .sort((a, b) => compareVersions(b, a));
+      .sort((a, b) => compareQuarterlyVersions(b, a));
 
     for (const prefix of prefixes) {
       const opt = document.createElement('option');
@@ -329,7 +480,7 @@ function generateBulkSearchContentArea(): HTMLDivElement {
     const data = await getSecurityFixVersions();
     const versions = Object.keys(data)
       .filter(v => v.indexOf(prefix + '.') === 0)
-      .sort(compareVersions);
+      .sort(compareQuarterlyVersions);
 
     versionSelect.innerHTML = '<option value="All">All</option>';
 
@@ -364,32 +515,58 @@ function generateBulkSearchContentArea(): HTMLDivElement {
 
     var cveFixTokensSet: Set<string> = new Set();
     var cveToLPELookup: Record<string, string[]> = {};
+    var lpeToCVELookup: Record<string, string[]> = {};
+
+    try {
+      var cveResponse = await fetch('https://s3-us-west-2.amazonaws.com/mdang.grow/security_issue_cve_lpe.json');
+      cveToLPELookup = await cveResponse.json();
+      var cveKeys = Object.keys(cveToLPELookup);
+      for (var i = 0; i < cveKeys.length; i++) {
+        var cve = cveKeys[i];
+        var lpes = cveToLPELookup[cve] || [];
+        for (var j = 0; j < lpes.length; j++) {
+          var lpe = lpes[j];
+          if (!lpeToCVELookup[lpe]) {
+            lpeToCVELookup[lpe] = [];
+          }
+          if (lpeToCVELookup[lpe].indexOf(cve) === -1) {
+            lpeToCVELookup[lpe].push(cve);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch CVE-LPE map', err);
+    }
 
     var nonCVETokensList = tokensList.filter(it => it.indexOf('CVE-') == -1 && it.indexOf('PRISMA-') == -1);
 
     if (cveTokensList.length > 0) {
-        var cveResponse = await fetch('https://s3-us-west-2.amazonaws.com/mdang.grow/security_issue_cve_lpe.json');
-
-        cveToLPELookup = await cveResponse.json();
-
-        cveFixTokensSet = new Set(cveTokensList.map(it => cveToLPELookup[it]).reduce((acc, next) => acc.concat(next), []));
+        cveFixTokensSet = new Set(cveTokensList.map(it => cveToLPELookup[it] || []).reduce((acc, next) => acc.concat(next), []));
 
         tokensSet = new Set([...nonCVETokensList, ...cveFixTokensSet]);
 
         tokensList = Array.from(tokensSet);
     }
 
-    addSpinner(tokensList.length);
-
-    var availableFixVersions = await getAllPatcherFixVersions(tokensList, tokensSet);
-
     var selectedPrefix = prefixSelect.value;
     var selectedVersion = versionSelect.value;
     var showSecurity = !!selectedPrefix;
 
+    addSpinner(tokensList.length + (showSecurity ? 2 : 0));
+
+    var availableFixVersions = await getAllPatcherFixVersions(tokensList, tokensSet);
+
     var securityData: Record<string, Record<string, Record<string, string[]>>> | null = null;
+    var jiraFixVersionsRecord: Record<string, string | null> = {};
+
     if (showSecurity) {
       securityData = await getSecurityFixVersions();
+      updateSpinner(1);
+      var missingTokens = tokensList.filter(ticket => !isTicketInSecurityData(ticket, securityData!));
+      if (missingTokens.length > 0) {
+        jiraFixVersionsRecord = await getJiraFixVersions(selectedPrefix, missingTokens);
+      }
+      updateSpinner(1);
     }
 
     var cveRows = cveTokensList.map(cve => {
@@ -403,17 +580,17 @@ function generateBulkSearchContentArea(): HTMLDivElement {
           securityStatus = `<span style="color: #777;">No associated LPEs found</span>`;
         } else {
           securityStatus = cveFixes.map(ticket => {
-            var status = getTicketSecurityStatus(ticket, selectedPrefix, selectedVersion, securityData!);
+            var status = getTicketSecurityStatus(ticket, selectedPrefix, selectedVersion, securityData!, jiraFixVersionsRecord[ticket]);
             return `<div><strong>${ticket}:</strong> ${status}</div>`;
           }).join('');
         }
-        securityCell = `<td style="padding: 8px; border: 1px solid #ddd;">${securityStatus}</td>`;
+        securityCell = `<td class="bulk-search-fix-status">${securityStatus}</td>`;
       }
 
       return `
         <tr>
-          <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; white-space: nowrap;">${cve}${cveFixes.length == 0 ? "" : ("<br/>(" + cveFixes.join(', ') + ")")}</td>
-          <td style="padding: 8px; border: 1px solid #ddd;">${Array.from(cveFixVersions).sort((a, b) => getLiferayVersion(a) - getLiferayVersion(b)).map(version => getPatcherPortalFixSearchLink(cveFixes, version, projectVersions)).join(', ')}</td>
+          <td class="bulk-search-ticket"><span class="bulk-search-ticket-name">${cve}</span>${cveFixes.length == 0 ? "" : ("<br/>(" + cveFixes.map(fix => `<span class="bulk-search-ticket-name">${fix}</span>`).join(', ') + ")")}</td>
+          <td class="bulk-search-baselines">${Array.from(cveFixVersions).sort((a, b) => getLiferayVersion(a) - getLiferayVersion(b)).map(version => getPatcherPortalFixSearchLink(cveFixes, version, projectVersions)).join(', ')}</td>
           ${securityCell}
         </tr>
       `;
@@ -422,27 +599,30 @@ function generateBulkSearchContentArea(): HTMLDivElement {
     var nonCVERows = nonCVETokensList.map(ticket => {
       var securityCell = '';
       if (showSecurity && securityData) {
-        var status = getTicketSecurityStatus(ticket, selectedPrefix, selectedVersion, securityData!);
-        securityCell = `<td style="padding: 8px; border: 1px solid #ddd;">${status}</td>`;
+        var status = getTicketSecurityStatus(ticket, selectedPrefix, selectedVersion, securityData!, jiraFixVersionsRecord[ticket]);
+        securityCell = `<td class="bulk-search-fix-status">${status}</td>`;
       }
+
+      var cves = lpeToCVELookup[ticket] || [];
+      var cveSuffix = cves.length === 0 ? "" : `<br/><span style="font-weight: normal; font-size: 0.9em; color: #555;">(${cves.map(cve => `<span class="bulk-search-ticket-name">${cve}</span>`).join(', ')})</span>`;
 
       return `
       <tr>
-        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">${ticket}</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${Array.from(availableFixVersions[ticket]).sort((a, b) => getLiferayVersion(a) - getLiferayVersion(b)).map(version => getPatcherPortalFixSearchLink([ticket], version, projectVersions)).join(', ')}</td>
+        <td class="bulk-search-ticket"><span class="bulk-search-ticket-name">${ticket}</span>${cveSuffix}</td>
+        <td class="bulk-search-baselines">${Array.from(availableFixVersions[ticket]).sort((a, b) => getLiferayVersion(a) - getLiferayVersion(b)).map(version => getPatcherPortalFixSearchLink([ticket], version, projectVersions)).join(', ')}</td>
         ${securityCell}
       </tr>
     `});
 
-    var securityHeader = selectedVersion === 'All' ? `Security Status (${selectedPrefix})` : `Security Status (${selectedVersion})`;
+    var fixStatusHeader = selectedVersion === 'All' ? `Fix Status (${selectedPrefix})` : `Fix Status (${selectedVersion})`;
 
     bulkSearchResults.innerHTML = `
-      <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+      <table class="bulk-search-table">
         <thead>
-          <tr style="background-color: #f2f2f2; text-align: left;">
-            <th style="padding: 8px; border: 1px solid #ddd;">Ticket</th>
-            <th style="padding: 8px; border: 1px solid #ddd;">Available on Baselines</th>
-            ${showSecurity ? `<th style="padding: 8px; border: 1px solid #ddd;">${securityHeader}</th>` : ''}
+          <tr>
+            <th class="bulk-search-ticket">Ticket</th>
+            <th class="bulk-search-baselines">Available on Baselines</th>
+            ${(showSecurity && securityData) ? `<th class="bulk-search-fix-status">${fixStatusHeader}</th>` : ''}
           </tr>
         </thead>
         <tbody>

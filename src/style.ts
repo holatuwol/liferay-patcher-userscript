@@ -148,6 +148,46 @@ tr.qa-analysis-unneeded {
 .shortened-content .fix-item a {
   white-space: nowrap;
 }
+
+/* Bulk Search Table Styles */
+.bulk-search-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.bulk-search-table th,
+.bulk-search-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+}
+
+.bulk-search-table thead tr {
+  background-color: #f2f2f2;
+  text-align: left;
+}
+
+.bulk-search-ticket {
+  font-weight: bold;
+}
+
+.bulk-search-ticket-name {
+  white-space: nowrap;
+}
+
+.bulk-search-status-fixed {
+  color: #0056b3;
+  font-weight: bold;
+}
+
+.bulk-search-status-not-fixed {
+  color: #d35400;
+  font-weight: bold;
+}
+
+.bulk-search-status-na {
+  color: #777;
+}
 `;
 
 document.head.appendChild(styleElement);
