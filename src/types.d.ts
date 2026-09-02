@@ -36,15 +36,30 @@ interface FixPackMetadata {
 	versionId: string;
 }
 
+interface JiraFields {
+  versions?: Array<{ name: string }>;
+  fixVersions?: Array<{ name: string }>;
+  issuelinks?: Array<{ inwardIssue?: { key: string }, outwardIssue?: { key: string } }>;
+  customfield_10786?: { value?: string, id?: string } | Array<{ value?: string, id?: string }>;
+  customfield_10886?: Array<{ name: string }> | { name?: string };
+  priority?: { name?: string, id?: string } | Array<{ name?: string, id?: string }>;
+  labels?: string[] | Array<{ name?: string, value?: string }>;
+}
+
 interface JiraIssue {
   key: string;
-  fields?: {
-    fixVersions?: Array<{ name: string }>;
-  };
+  fields?: JiraFields;
 }
 
 interface JiraSearchRequest extends XMLHttpRequest {
   response: {
-      issues?: JiraIssue[];
+      issues: JiraIssue[];
+      isLast: boolean;
+      nextPageToken?: string;
   }
+}
+
+interface JiraSecurityStatus {
+  severity: string;
+  fixVersions: string[];
 }
