@@ -34,6 +34,8 @@ var applyPatcherCustomizations = function() {
     updatePreviousBuildsContent();
 
     if (activeTabName == 'Fixes') {
+      addFixesVersionInput();
+      addKeywordsProjectVersionFilter();
       addBulkSearchTab();
     }
   }

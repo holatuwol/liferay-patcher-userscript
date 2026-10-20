@@ -192,11 +192,11 @@ tr.qa-analysis-unneeded {
 
 document.head.appendChild(styleElement);
 
-if (document.location.pathname.indexOf('/create') != -1) {
+if ((document.location.pathname.indexOf('/create') != -1) || isFixesListPage()) {
   var createStyleElement = document.createElement('style');
 
   createStyleElement.textContent = `
-#_1_WAR_osbpatcherportlet_patcherProductVersionId option {
+#_1_WAR_osbpatcherportlet_patcherProductVersionId:not([data-liferay-version=""]) option {
   display: none;
 }
 
