@@ -221,11 +221,23 @@ var projectVersionSelectsWithInput = new WeakSet<HTMLSelectElement>();
  * Returns the texts of the project version options, from the newest
  * version to the oldest. A filter select keeps its option without a
  * value (for example 'All') at the start, so that the filter can be
- * removed.
+ * removed. On the create pages, Quarterly Releases keeps only the
+ * quarterly versions, the same as the fixes list.
  */
 
 function getProjectVersionTexts(projectVersionSelect: HTMLSelectElement): string[] {
   var isFilter = projectVersionSelect.name == (ns + 'patcherProjectVersionIdFilter');
+  var pattern: RegExp | null = null;
+  var productVersionSelect = <HTMLSelectElement | null> querySelector('patcherProductVersionId');
+
+  if (!isFilter && productVersionSelect && (productVersionSelect.selectedIndex != -1)) {
+    var productVersionText = (productVersionSelect.options[productVersionSelect.selectedIndex].textContent || '').trim();
+
+    if (productVersionText == 'Quarterly Releases') {
+      pattern = getProductProjectVersionPattern(productVersionText);
+    }
+  }
+
   var emptyValueTexts: string[] = [];
   var versionTexts: string[] = [];
 
@@ -238,7 +250,9 @@ function getProjectVersionTexts(projectVersionSelect: HTMLSelectElement): string
     }
 
     if (option.value != '') {
-      versionTexts.push(text);
+      if (!pattern || pattern.test(text)) {
+        versionTexts.push(text);
+      }
     }
     else if (isFilter) {
       emptyValueTexts.push(text);
