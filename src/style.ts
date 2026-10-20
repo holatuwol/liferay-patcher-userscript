@@ -84,6 +84,29 @@ th.branch-type a {
   display: block;
 }
 
+.patcher-form-row {
+  display: grid !important;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  justify-items: start;
+  margin-bottom: 12px !important;
+  row-gap: 12px;
+}
+
+.patcher-form-row > * {
+  grid-column: 2;
+  margin: 0 !important;
+}
+
+.patcher-form-row > textarea {
+  box-sizing: border-box;
+}
+
+.patcher-form-row > .patcher-form-label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
 a[href*="https://grow.liferay.com/"] {
   padding-left: 0.5em;
 }

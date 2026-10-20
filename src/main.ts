@@ -46,6 +46,13 @@ var applyPatcherCustomizations = function() {
   sortProjectVersionIdFilterSelects();
 
   compareBuildFixes();
+
+  layoutFormRows();
+
+  new MutationObserver(<MutationCallback> debounce(layoutFormRows, 100)).observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
 };
 
 if (exportFunction) {

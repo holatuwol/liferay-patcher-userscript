@@ -42,6 +42,35 @@ function updateCompactContainer(
   tableRow.appendChild(tableCell);
 }
 
+/**
+ * Puts the label of each flex form row in a column of its own, and each
+ * field of the row on a line of its own. Without this, the selects and
+ * the inputs that this script adds next to a field make the row too wide.
+ */
+
+function layoutFormRows(): void {
+  var rows = document.querySelectorAll('#p_p_id' + ns + ' .control-group');
+
+  for (var i = 0; i < rows.length; i++) {
+    var row = <HTMLElement> rows[i];
+
+    if (row.classList.contains('patcher-form-row') || (getComputedStyle(row).display != 'flex')) {
+      continue;
+    }
+
+    var label = Array.from(row.children).find(function (child) {
+      return (child.tagName.toLowerCase() == 'label') || child.classList.contains('control-label');
+    });
+
+    if (!label) {
+      continue;
+    }
+
+    label.classList.add('patcher-form-label');
+    row.classList.add('patcher-form-row');
+  }
+}
+
 function rearrangeColumns() : void {
   if (document.location.pathname.indexOf('/-/osb_patcher/builds/') == -1) {
     return;
