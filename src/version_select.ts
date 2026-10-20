@@ -341,7 +341,6 @@ function getLiferayVersion(version: string) : number {
     return 8000000 + parseInt(shortVersion) * 100 + parseInt(updateVersion);
   }
   else {
-    console.log('unrecognized version pattern', version);
     return 0;
   }
 }
