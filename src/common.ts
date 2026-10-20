@@ -1,7 +1,5 @@
 var AUI = <AUI> unsafeWindow.AUI;
 var Liferay = <Liferay> unsafeWindow.Liferay;
-var _1_WAR_osbpatcherportlet_productVersionOnChange = <Function> unsafeWindow._1_WAR_osbpatcherportlet_productVersionOnChange;
-
 var portletId = '1_WAR_osbpatcherportlet';
 var ns = '_' + portletId + '_';
 
