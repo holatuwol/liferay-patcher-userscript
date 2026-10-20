@@ -205,7 +205,8 @@ if (document.location.pathname.indexOf('/create') != -1) {
 #_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.1"] option[data-liferay-version="7.1"],
 #_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.2"] option[data-liferay-version="7.2"],
 #_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.3"] option[data-liferay-version="7.3"],
-#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.4"] option[data-liferay-version="7.4"] {
+#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="7.4"] option[data-liferay-version="7.4"],
+#_1_WAR_osbpatcherportlet_patcherProductVersionId[data-liferay-version="Quarterly"] option[data-liferay-version="Quarterly"] {
   display: block;
 }
 `;
