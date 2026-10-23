@@ -309,8 +309,16 @@ function createVersionInput(placeholder: string, onSelect: (text: string) => voi
   var selectText = function () {
     var text = input.value.trim();
 
-    if ((text != selectedText) && (texts.indexOf(text) != -1)) {
+    if (texts.indexOf(text) == -1) {
+      return;
+    }
+
+    if (text != selectedText) {
       onSelect(text);
+    } else {
+      // A pick of the selected text changes nothing, so the input
+      // gives up the focus, and the next click clears it again.
+      input.blur();
     }
   };
 
