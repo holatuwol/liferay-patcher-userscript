@@ -89,7 +89,8 @@ function isFixesListPage(): boolean {
 
 /**
  * Returns the URL of the fixes list for the given product version and,
- * if it is not empty, the given project version.
+ * if it is not empty, the given project version. The keywords of the
+ * search input become the fix name, so that a version change keeps them.
  */
 
 function getFixesListURL(
@@ -97,13 +98,15 @@ function getFixesListURL(
   patcherProjectVersionIdFilter: string | null
 ): string {
 
+  var keywordsElement = <HTMLInputElement | null> document.getElementById('toggle_id_patcher_fix_searchkeywords');
+
   var params: {[key: string]: string} = {
     'advancedSearch': 'true',
     'andOperator': 'true',
     'hideOldFixVersions': 'true',
     'hideOldFixVersionsCheckbox': 'true',
     'statusFilter': '100',
-    'patcherFixName': '',
+    'patcherFixName': keywordsElement ? encodeURIComponent(keywordsElement.value.trim()) : '',
     'patcherProductVersionId': patcherProductVersionId
   };
 
