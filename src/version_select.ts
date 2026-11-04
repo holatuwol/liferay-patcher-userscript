@@ -88,42 +88,25 @@ function isFixesListPage(): boolean {
 }
 
 /**
- * Returns the URL of the fixes list for the given product version and,
- * if it is not empty, the given project version. The keywords of the
- * search input become the fix name, so that a version change keeps them.
+ * Returns the text of the keywords search input of the page (the input
+ * named keywords, or the one of the fixes list search toolbar), or an
+ * empty string if the page has no such input.
  */
 
-function getFixesListURL(
-  patcherProductVersionId: string,
-  patcherProjectVersionIdFilter: string | null
-): string {
+function getKeywordsInputValue(): string {
+  var keywordsElement = <HTMLInputElement | null> (document.getElementById('toggle_id_patcher_fix_searchkeywords') ||
+    document.getElementsByName(ns + 'keywords')[0] || null);
 
-  var keywordsElement = <HTMLInputElement | null> document.getElementById('toggle_id_patcher_fix_searchkeywords');
-
-  var params: {[key: string]: string} = {
-    'advancedSearch': 'true',
-    'andOperator': 'true',
-    'hideOldFixVersions': 'true',
-    'hideOldFixVersionsCheckbox': 'true',
-    'statusFilter': '100',
-    'patcherFixName': keywordsElement ? encodeURIComponent(keywordsElement.value.trim()) : '',
-    'patcherProductVersionId': patcherProductVersionId
-  };
-
-  if (patcherProjectVersionIdFilter) {
-    params.patcherProjectVersionIdFilter = patcherProjectVersionIdFilter;
-  }
-
-  return 'https://patcher.liferay.com/group/guest/patching/-/osb_patcher?' + getQueryString(params);
+  return keywordsElement ? keywordsElement.value.trim() : '';
 }
 
 /**
  * Adds a new element to the page to allow you to select from a list of
  * Liferay versions before choosing a product version. Only applies on
- * the create pages and on the fixes list, since on other pages (e.g.
- * viewing an existing build or fix) this select is either disabled or
- * not meant to have its defaults second-guessed. On the fixes list, a
- * Liferay version change loads the list of the new product version.
+ * the create pages, since on other pages (e.g. viewing an existing build
+ * or fix) this select is either disabled or not meant to have its
+ * defaults second-guessed. The lists have a search panel instead (see
+ * enhanceSearchToggle).
  */
 
 function addProductVersionFilter() : void {
@@ -144,9 +127,7 @@ function addProductVersionFilter() : void {
     return;
   }
 
-  var isFixesList = isFixesListPage();
-
-  if ((document.location.pathname.indexOf('/create') == -1) && !isFixesList) {
+  if (document.location.pathname.indexOf('/create') == -1) {
     return;
   }
 
@@ -168,7 +149,7 @@ function addProductVersionFilter() : void {
   var hadSelectedVersion = !!selectedVersion;
 
   if (!selectedVersion) {
-    selectedVersion = isFixesList ? '' : 'Quarterly';
+    selectedVersion = 'Quarterly';
   }
 
   var liferayVersionSelect = document.createElement('select');
@@ -187,11 +168,6 @@ function addProductVersionFilter() : void {
 
   var productVersionSelectParentElement = <HTMLElement> productVersionSelect.parentElement;
   productVersionSelectParentElement.insertBefore(liferayVersionSelect, productVersionSelect);
-
-  if (isFixesList) {
-    productVersionSelect.setAttribute('data-liferay-version', selectedVersion);
-    return;
-  }
 
   if (hadSelectedVersion && selectedVersion) {
     productVersionSelect.setAttribute('data-liferay-version', selectedVersion);
@@ -262,8 +238,11 @@ function getProjectVersionTexts(projectVersionSelect: HTMLSelectElement): string
     }
   }
 
+  // Newest first by the version (see getLiferayVersion), so that for
+  // example the quarterly releases come before the fix packs and the
+  // marketplace versions, and then by name for the same version.
   return emptyValueTexts.concat(versionTexts.sort(function (a, b) {
-    return b.localeCompare(a, 'en', {numeric: true});
+    return (getLiferayVersion(b) - getLiferayVersion(a)) || b.localeCompare(a, 'en', {numeric: true});
   }));
 }
 
@@ -291,8 +270,13 @@ function isProjectVersionPreselected(projectVersionSelect: HTMLSelectElement): b
  * Creates a text input with a list of choices. Typing in the input
  * filters the list. When the input text is equal to a choice, the input
  * calls onSelect with that text. When the input gets the focus, it is
- * cleared, so that the full list shows.
+ * cleared, so that the list shows the first choices. The list (a datalist)
+ * only has the choices that have the text of the input, at most
+ * versionInputOptionCount of them, since a datalist with hundreds of
+ * options is slow to filter as the user types.
  */
+
+var versionInputOptionCount = 50;
 
 function createVersionInput(placeholder: string, onSelect: (text: string) => void) {
   var dataList = document.createElement('datalist');
@@ -305,6 +289,35 @@ function createVersionInput(placeholder: string, onSelect: (text: string) => voi
 
   var selectedText = '';
   var texts: string[] = [];
+  var shownFilter: string | null = null;
+
+  // Fills the list with the first choices that have the given text (in
+  // any case), in the order of the choices. The browser filters the list
+  // the same way, so the list has the choices that it would show.
+  var showOptions = function (text: string) {
+    var filter = text.trim().toLowerCase();
+
+    if (filter == shownFilter) {
+      return;
+    }
+
+    shownFilter = filter;
+
+    var fragment = document.createDocumentFragment();
+    var count = 0;
+
+    for (var i = 0; (i < texts.length) && (count < versionInputOptionCount); i++) {
+      if ((filter == '') || (texts[i].toLowerCase().indexOf(filter) != -1)) {
+        var option = document.createElement('option');
+        option.value = texts[i];
+        fragment.appendChild(option);
+        count++;
+      }
+    }
+
+    dataList.innerHTML = '';
+    dataList.appendChild(fragment);
+  };
 
   var selectText = function () {
     var text = input.value.trim();
@@ -332,9 +345,12 @@ function createVersionInput(placeholder: string, onSelect: (text: string) => voi
 
   input.addEventListener('focus', function () {
     input.value = '';
+    showOptions('');
   });
 
   input.addEventListener('input', function (event: any) {
+    showOptions(input.value);
+
     if (event.inputType != 'insertText') {
       selectText();
     }
@@ -348,6 +364,12 @@ function createVersionInput(placeholder: string, onSelect: (text: string) => voi
       parentElement.insertBefore(dataList, nextSibling);
     },
     setSelectedText: function (text: string) {
+      // A change of a focused input with an open list can make the browser
+      // close the list, so the input only changes when the text changes.
+      if (text == selectedText) {
+        return;
+      }
+
       selectedText = text;
       input.placeholder = text || placeholder;
 
@@ -360,13 +382,8 @@ function createVersionInput(placeholder: string, onSelect: (text: string) => voi
     },
     setTexts: function (newTexts: string[]) {
       texts = newTexts;
-      dataList.innerHTML = '';
-
-      for (var i = 0; i < texts.length; i++) {
-        var option = document.createElement('option');
-        option.value = texts[i];
-        dataList.appendChild(option);
-      }
+      shownFilter = null;
+      showOptions((document.activeElement == input) ? input.value : '');
     }
   };
 }
@@ -488,65 +505,212 @@ function getProductProjectVersionPattern(productVersionText: string): RegExp | n
 }
 
 /**
- * Adds a text input next to the product version select of the fixes
- * list, with a list of the project versions of the selected product.
- * A pick from the list reloads the fixes list for that project version,
- * and a pick of 'All' removes the project version filter.
+ * Returns the URL of the builds list of the current account, with the
+ * given filters changed. A filter with an empty value is removed, and
+ * the list starts again on the first page. The URL is an advanced search,
+ * which finds nothing with a keywords parameter, so the keywords (the
+ * ones of the keywords search input, or else the ones of the current URL)
+ * become the build name instead.
  */
 
-function addFixesVersionInput(): void {
-  if (document.location.pathname.indexOf('/create') != -1) {
-    return;
+function getAccountBuildsListURL(filters: {[key: string]: string | null}): string {
+  var params = new URLSearchParams(getPageParameters().toString());
+
+  params.set(ns + 'advancedSearch', 'true');
+  params.set(ns + 'andOperator', 'true');
+  params.delete(ns + 'cur');
+
+  // Keeps the keywords that the user typed after the page loaded, as the
+  // build name of the advanced search.
+  var keywords = (document.getElementsByName(ns + 'keywords').length > 0) ? getKeywordsInputValue() :
+    (params.get(ns + 'keywords') || params.get(ns + 'patcherBuildName') || '');
+
+  params.delete(ns + 'keywords');
+
+  if (keywords) {
+    params.set(ns + 'patcherBuildName', keywords);
+  }
+  else {
+    params.delete(ns + 'patcherBuildName');
   }
 
-  var productVersionSelect = <HTMLSelectElement | null> querySelector('patcherProductVersionId');
-  var projectVersionSelect = <HTMLSelectElement> document.getElementsByName(ns + 'patcherProjectVersionIdFilter')[0];
-
-  if (!productVersionSelect || !projectVersionSelect || (productVersionSelect.selectedIndex == -1)) {
-    return;
-  }
-
-  var pattern = getProductProjectVersionPattern((productVersionSelect.options[productVersionSelect.selectedIndex].textContent || '').trim());
-
-  if (!pattern) {
-    return;
-  }
-
-  var versions = Array.from(projectVersionSelect.options).map(function (option) {
-    return {
-      text: (option.textContent || '').trim(),
-      value: option.value
-    };
-  }).filter(function (version) {
-    return pattern!.test(version.text);
-  }).sort(function (a, b) {
-    return b.text.localeCompare(a.text, 'en', {numeric: true});
+  Object.keys(filters).forEach(function (key) {
+    if (filters[key]) {
+      params.set(ns + key, filters[key]!);
+    }
+    else {
+      params.delete(ns + key);
+    }
   });
 
-  if (versions.length == 0) {
-    return;
+  return 'https://patcher.liferay.com/group/guest/patching/-/osb_patcher/accounts/view?' + params.toString();
+}
+
+/**
+ * Returns the value of the given namespaced parameter of the current page
+ * (see getPageParameters), or null if the page does not have it.
+ */
+
+function getNamespacedParameter(name: string): string | null {
+  return getPageParameters().get(ns + name);
+}
+
+/**
+ * Returns whether the given product version text is the product that a
+ * pick of the given broad Liferay version selects, for example DXP 7.3
+ * for 7.3, and Quarterly Releases for Quarterly.
+ */
+
+function isDefaultProductVersionText(liferayVersion: string, productVersionText: string): boolean {
+  return (liferayVersion == 'Quarterly') ?
+    (productVersionText.trim() == 'Quarterly Releases') :
+    (productVersionText.trim() == 'DXP ' + liferayVersion);
+}
+
+/**
+ * Returns the URL of the current list with the given filters changed (a
+ * null value removes the filter), on the first page: for the builds list
+ * of an account, the builds of the account (see getAccountBuildsListURL),
+ * and for another list, the current URL with the filters changed.
+ */
+
+function getListFilterURL(filters: {[key: string]: string | null}): string {
+  if (document.location.pathname.indexOf('/accounts/view') != -1) {
+    return getAccountBuildsListURL(filters);
   }
 
-  var match = new RegExp(ns + 'patcherProjectVersionIdFilter=(\\d+)').exec(document.location.search);
+  var params = new URLSearchParams(getPageParameters().toString());
 
-  var selectedVersion = versions.find(function (version) {
-    return match && (version.value == match[1]);
+  params.delete(ns + 'cur');
+
+  Object.keys(filters).forEach(function (key) {
+    var value = filters[key];
+
+    if (value) {
+      params.set(ns + key, value);
+    }
+    else {
+      params.delete(ns + key);
+    }
   });
 
-  var versionInput = createVersionInput('All', function (text) {
-    var version = versions.find(function (version) {
-      return version.text == text;
+  return document.location.origin + document.location.pathname + '?' + params.toString();
+}
+
+/**
+ * The columns of the tables of a list whose values become links to the list
+ * filtered by that value (see addFilterColumnLinks): the header of the
+ * column, the name of the select of the page whose options give the value
+ * of each text, and the URL of a value. A project version filter is an
+ * advanced search. A product filter removes the project version filter,
+ * since a project version belongs to one product.
+ */
+
+var filterColumns = [
+  {
+    header: 'Project Version',
+    selectName: 'patcherProjectVersionIdFilter',
+    getURL: function (value: string) {
+      return getListFilterURL({advancedSearch: 'true', patcherProjectVersionIdFilter: value});
+    }
+  },
+  {
+    header: 'Product',
+    selectName: 'patcherProductVersionId',
+    getURL: function (value: string) {
+      return getListFilterURL({patcherProductVersionId: value, patcherProjectVersionIdFilter: null});
+    }
+  }
+];
+
+/**
+ * Turns the values of the filter columns (see filterColumns) of the tables
+ * of a list (for example the Product and Project Version columns of the
+ * fixes list, or the Project Version column of the builds list of an
+ * account) into links to the list filtered by that value. The value of a
+ * cell is the option of the select of the column with the same text (the
+ * select with the most options, if the page has more than one), and a
+ * cell without such an option, or that already has a link, stays as it
+ * is. The links send no Referer header, the same as the pagination links
+ * (see addNoReferrerToPaginationLinks). Since the table can be created again (for example by the
+ * search container of the portlet), the cells are checked again whenever
+ * the page changes.
+ */
+
+function addFilterColumnLinks(): void {
+  var getValues = function (selectName: string) {
+    var select = (<HTMLSelectElement[]> Array.from(document.getElementsByName(ns + selectName)).filter(function (element) {
+      return element.tagName == 'SELECT';
+    })).sort(function (a, b) {
+      return b.options.length - a.options.length;
+    })[0];
+
+    var values: {[key: string]: string} = {};
+
+    if (select) {
+      Array.from(select.options).forEach(function (option) {
+        var text = (option.textContent || '').trim();
+
+        if ((option.value != '') && (option.value != '0') && text) {
+          values[text] = option.value;
+        }
+      });
+    }
+
+    return values;
+  };
+
+  var update = function () {
+    filterColumns.forEach(function (column) {
+      var values = getValues(column.selectName);
+
+      if (Object.keys(values).length == 0) {
+        return;
+      }
+
+      Array.from(document.querySelectorAll('table')).forEach(function (table) {
+        var index = Array.from(table.querySelectorAll('thead th')).findIndex(function (headerCell) {
+          return (headerCell.textContent || '').trim() == column.header;
+        });
+
+        if (index == -1) {
+          return;
+        }
+
+        Array.from(table.querySelectorAll('tbody tr')).forEach(function (row) {
+          var cell = (<HTMLTableRowElement> row).cells[index];
+
+          if (!cell || (cell.children.length > 0)) {
+            return;
+          }
+
+          var text = (cell.textContent || '').trim();
+          var value = values[text];
+
+          if (!value) {
+            return;
+          }
+
+          var link = document.createElement('a');
+          link.href = column.getURL(value);
+          link.textContent = text;
+          link.title = 'Show only ' + text;
+          link.setAttribute('rel', 'noreferrer');
+          link.setAttribute('referrerpolicy', 'no-referrer');
+
+          cell.textContent = '';
+          cell.appendChild(link);
+        });
+      });
     });
+  };
 
-    document.location.href = getFixesListURL(productVersionSelect!.value, version ? version.value : null);
+  update();
+
+  new MutationObserver(<MutationCallback> debounce(update, 300)).observe(document.body, {
+    childList: true,
+    subtree: true,
   });
-
-  versionInput.setTexts(['All'].concat(versions.map(function (version) {
-    return version.text;
-  })));
-
-  versionInput.setSelectedText(selectedVersion ? selectedVersion.text : 'All');
-  versionInput.insert(<HTMLElement> productVersionSelect.parentElement, productVersionSelect.nextSibling);
 }
 
 /**
@@ -564,11 +728,11 @@ function addKeywordsProjectVersionFilter(): void {
   }
 
   var form = keywordsElement.form;
-  var isAdvancedSearch = new RegExp(ns + 'advancedSearch=true').test(document.location.search);
-  var match = new RegExp(ns + 'patcherFixName=([^&]+)').exec(document.location.search);
+  var isAdvancedSearch = getNamespacedParameter('advancedSearch') == 'true';
+  var patcherFixName = getNamespacedParameter('patcherFixName');
 
-  if (isAdvancedSearch && match && !keywordsElement.value) {
-    keywordsElement.value = decodeURIComponent(match[1].replace(/\+/g, ' '));
+  if (isAdvancedSearch && patcherFixName && !keywordsElement.value) {
+    keywordsElement.value = patcherFixName;
   }
 
   document.addEventListener('submit', function (event) {
@@ -581,6 +745,13 @@ function addKeywordsProjectVersionFilter(): void {
     var projectVersionSelect = <HTMLSelectElement> (<any> form.elements)[ns + 'patcherProjectVersionIdFilter'];
 
     if (!advancedSearchElement || !patcherFixNameElement || !projectVersionSelect || !projectVersionSelect.value) {
+      return;
+    }
+
+    // With the two search modes (see enhanceSearchToggle), the keywords
+    // are disabled in the advanced search, and the project version is
+    // disabled in the basic search, which then stays a basic search.
+    if (keywordsElement!.disabled || projectVersionSelect.disabled) {
       return;
     }
 
@@ -651,8 +822,6 @@ function addProjectVersionFilter(
       getQueryString({
         'advancedSearch': 'true',
         'andOperator': 'true',
-        'hideOldFixVersions': 'true',
-        'hideOldFixVersionsCheckbox': 'true',
         'statusFilter': '100',
         'patcherFixName': '',
         'patcherProductVersionId': productVersionSelect.options[productVersionSelect.selectedIndex].value,
@@ -672,10 +841,11 @@ function getLiferayVersion(version: string) : number {
     return 0;
   }
   else if (version.indexOf('marketplace-') != -1) {
-    var pos = version.indexOf('-private');
-    pos = version.lastIndexOf('-', pos == -1 ? version.length : pos - 1);
-    var shortVersion = version.substring(pos + 1);
-    return parseInt(shortVersion) * 1000;
+    // The suffix is the four digit version at the end (before -private),
+    // since the name of the app can also have -private in it (for example
+    // marketplace-social-private-messaging-1.0.0-7010).
+    var suffixMatcher = /-([0-9]{4})(?:-private)?$/.exec(version);
+    return suffixMatcher ? parseInt(suffixMatcher[1]) * 1000 : 0;
   }
   else if (version.indexOf('fix-pack-de-') != -1) {
     var pos = version.indexOf('-', 12);
@@ -935,11 +1105,7 @@ function updateProductVersionSelect() {
     var selectedOptionText = selectedOption.textContent || '';
 
     if (selectedOption.getAttribute('data-liferay-version') == liferayVersion) {
-      var isDefaultOptionText = (liferayVersion == 'Quarterly') ?
-        (selectedOptionText.trim() == 'Quarterly Releases') :
-        (selectedOptionText.trim() == 'DXP ' + liferayVersion);
-
-      if (isDefaultOptionText) {
+      if (isDefaultProductVersionText(liferayVersion, selectedOptionText)) {
         setTimeout(updateProjectVersionOrder, 500);
       }
 
@@ -951,12 +1117,6 @@ function updateProductVersionSelect() {
 
   if (option) {
     option.selected = true;
-
-    if (isFixesListPage()) {
-      document.location.href = getFixesListURL(option.value, null);
-      return;
-    }
-
     unsafeWindow._1_WAR_osbpatcherportlet_productVersionOnChange(option.value);
     setTimeout(updateProjectVersionOrder, 500);
   }

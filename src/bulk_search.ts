@@ -104,26 +104,6 @@ async function getAllPatcherFixVersions(tokensList: string[], tokensSet: Set<str
   }, <Record<string, Set<string>>> {});
 }
 
-function getTargetVersions(selectedVersion: string, allVersions: Record<string, string>): string[] {
-  if (!selectedVersion) return [];
-
-  var match = selectedVersion.match(/^([0-9]+\.q[1-4]\.)(\d+)$/);
-  if (!match) return [selectedVersion];
-
-  var [, prefix, startNumStr] = match;
-  var startNum = parseInt(startNumStr);
-
-  return Object.keys(allVersions)
-    .filter(x => x.indexOf(prefix) == 0)
-    .map(v => {
-      var patchVersion = parseInt(v.substring(prefix.length + 1));
-      return { full: v, patch: patchVersion };
-    })
-    .filter(v => v.patch >= startNum)
-    .sort((a, b) => a.patch - b.patch)
-    .map(v => v.full);
-}
-
 function getPatcherPortalFixSearchLink(tokens: string[], version: string, projectVersions: Record<string, string>): string {
   if (!(version in projectVersions)) {
     return version;

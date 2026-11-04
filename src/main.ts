@@ -1,6 +1,11 @@
 // Run all the changes we need to the page.
 
 var applyPatcherCustomizations = function() {
+  removeEmptyGetFormFields();
+  setNoReferrerPolicy();
+  addNoReferrerToGetForms();
+  addNoReferrerToPaginationLinks();
+
   highlightAnalysisNeededBuilds();
 
   if ((document.location.pathname.indexOf('/-/osb_patcher/fixes/create') != -1) ||
@@ -32,9 +37,13 @@ var applyPatcherCustomizations = function() {
     addProductVersionFilter();
     addEngineerComments();
     updatePreviousBuildsContent();
+    enhanceSearchToggles();
+
+    if (document.location.pathname.indexOf('/create') == -1) {
+      addFilterColumnLinks();
+    }
 
     if (activeTabName == 'Fixes') {
-      addFixesVersionInput();
       addKeywordsProjectVersionFilter();
       addBulkSearchTab();
     }

@@ -17,6 +17,7 @@
     "src/jenkins.ts",
     "src/baseline.ts",
     "src/version_select.ts",
+    "src/search_panel.ts",
     "src/build_fixes.ts",
     "src/child_builds.ts",
     "src/fixes.ts",

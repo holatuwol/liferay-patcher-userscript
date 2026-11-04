@@ -28,8 +28,12 @@ p[inputcssclass="osb-patcher-input-wide"] {
   width: 60em;
 }
 
-#_1_WAR_osbpatcherportlet_patcherBuildName {
+.osb-patcher-max-height #_1_WAR_osbpatcherportlet_patcherBuildName {
   height: 5em;
+}
+
+select#_1_WAR_osbpatcherportlet_statusFilter {
+  width: auto;
 }
 
 .control-group.field-wrapper .table,
@@ -211,11 +215,62 @@ tr.qa-analysis-unneeded {
 .bulk-search-status-na {
   color: #777;
 }
+
+/* Search panel of the lists (see enhanceSearchToggle) */
+.patcher-search-panel,
+.patcher-search-secondary {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em 1.25em;
+}
+
+.patcher-search-panel {
+  margin: 0.5em 0 1em;
+}
+
+.patcher-search-secondary {
+  border-top: 1px solid #eee;
+  flex-basis: 100%;
+  padding-top: 0.5em;
+}
+
+.patcher-search-panel .control-group,
+.patcher-search-panel .control-group.patcher-form-row {
+  display: block !important;
+  margin: 0 !important;
+}
+
+.patcher-search-panel .control-group .control-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.2em;
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+.patcher-search-panel input,
+.patcher-search-panel select {
+  margin-bottom: 0 !important;
+}
+
+.patcher-search-actions {
+  align-items: center;
+  display: flex;
+  gap: 1em;
+}
+
+.patcher-search-advanced-link {
+  font-size: 14px;
+  margin-left: 1em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
 `;
 
 document.head.appendChild(styleElement);
 
-if ((document.location.pathname.indexOf('/create') != -1) || isFixesListPage()) {
+if (document.location.pathname.indexOf('/create') != -1) {
   var createStyleElement = document.createElement('style');
 
   createStyleElement.textContent = `

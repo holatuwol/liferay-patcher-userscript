@@ -52,6 +52,226 @@ function getQueryString(params : any) : string {
 }
 
 /**
+ * Leaves out the blank fields of a form that the browser submits with GET,
+ * since their names alone can make the URL too long. This runs when the
+ * browser collects the fields of the form for the submit (the formdata
+ * event), so the fields of the form stay as they are, and it also covers
+ * a submit by a script of the page (form.submit()). Fields with their
+ * default value (hide old fix versions) are left out too, but not when the
+ * checkbox is cleared, since then the value is false. A simple search with
+ * a status becomes an advanced search, and an advanced search sends its
+ * keywords as the build name or the fix name, since it finds nothing with
+ * keywords. Forms submitted with POST are left alone, since their fields
+ * are not in the URL.
+ */
+
+function removeEmptyGetFormFields(): void {
+  document.addEventListener('formdata', function (event) {
+    var form = <HTMLFormElement> event.target;
+    // TypeScript 3.6 has no types for the formdata event.
+    var formData = <any> (<any> event).formData;
+
+    if (!form || !formData || !isGetForm(form)) {
+      return;
+    }
+
+    var entries: [string, FormDataEntryValue][] = [];
+
+    formData.forEach(function (value: FormDataEntryValue, name: string) {
+      entries.push([name, value]);
+    });
+
+
+    // Parameters that have their default value can be left off as well.
+    var defaultValues: {[key: string]: string} = {};
+    defaultValues[ns + 'hideOldFixVersions'] = 'true';
+    defaultValues[ns + 'hideOldFixVersionsCheckbox'] = 'true';
+
+    var names = entries.map(function (entry) {
+      return entry[0];
+    }).filter(function (name, index, array) {
+      return array.indexOf(name) == index;
+    });
+
+    names.forEach(function (name) {
+      var values = entries.filter(function (entry) {
+        return entry[0] == name;
+      }).map(function (entry) {
+        return entry[1];
+      });
+
+      var nonEmptyValues = values.filter(function (value) {
+        return (typeof value != 'string') || ((value != '') && (value != defaultValues[name]));
+      });
+
+      if (nonEmptyValues.length == values.length) {
+        return;
+      }
+
+      formData.delete(name);
+
+      nonEmptyValues.forEach(function (value) {
+        formData.append(name, value);
+      });
+    });
+
+    // A simple search ignores the status filter, so a search with a status
+    // becomes an advanced search.
+    if (String(formData.get(ns + 'statusFilter') || '') && (formData.get(ns + 'advancedSearch') == 'false')) {
+      formData.set(ns + 'advancedSearch', 'true');
+    }
+
+    // An advanced search finds nothing with keywords, so the keywords
+    // become the name field of the search, if it is empty: the build name
+    // for builds (for example the builds list of an account), and the fix
+    // name for fixes.
+    if ((formData.get(ns + 'advancedSearch') == 'true') && formData.has(ns + 'keywords')) {
+      var keywords = String(formData.get(ns + 'keywords') || '').trim();
+
+      var hasField = function (name: string) {
+        return Array.from(form.elements).some(function (element) {
+          return (<HTMLInputElement> element).name == ns + name;
+        });
+      };
+
+      var nameField = ns + (hasField('patcherBuildName') ? 'patcherBuildName' :
+        hasField('patcherFixName') ? 'patcherFixName' :
+        (document.location.pathname.indexOf('/accounts') != -1) ? 'patcherBuildName' : 'patcherFixName');
+
+      formData.delete(ns + 'keywords');
+
+      if (keywords && !String(formData.get(nameField) || '').trim()) {
+        formData.set(nameField, keywords);
+      }
+    }
+  }, true);
+}
+
+/**
+ * Returns whether the given form submits with GET, the default method.
+ */
+
+function isGetForm(form: HTMLFormElement): boolean {
+  return (form.getAttribute('method') || 'get').toLowerCase() == 'get';
+}
+
+/**
+ * Sets the referrer policy of the page to no-referrer, so that the
+ * requests that follow send no Referer header.
+ */
+
+function setNoReferrerPolicy(): void {
+  var meta = <HTMLMetaElement | null> document.querySelector('meta[name="referrer"]');
+
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.name = 'referrer';
+    document.head.appendChild(meta);
+  }
+
+  meta.content = 'no-referrer';
+}
+
+/**
+ * Makes the forms that submit with GET send no Referer header, since the
+ * URL of the current page can be long enough that the request is too large
+ * for the server. The forms get the noreferrer link type of the rel
+ * attribute, but Chromium ignores it on forms, so a GET submit also sets
+ * the referrer policy of the page (see setNoReferrerPolicy) just before the
+ * browser loads the next page: on the submit event of a submit button, and
+ * on the formdata event of a submit by a script (form.submit()), which has
+ * no submit event. Forms submitted with POST are left alone.
+ */
+
+function addNoReferrerToGetForms(): void {
+  var addNoReferrer = function (form: HTMLFormElement) {
+    if (!isGetForm(form)) {
+      return;
+    }
+
+    var rel = (form.getAttribute('rel') || '').split(/\s+/).filter(function (value) {
+      return value != '';
+    });
+
+    if (rel.indexOf('noreferrer') == -1) {
+      rel.push('noreferrer');
+      form.setAttribute('rel', rel.join(' '));
+    }
+  };
+
+  Array.from(document.forms).forEach(addNoReferrer);
+
+  var onSubmit = function (event: Event) {
+    if ((event.target instanceof HTMLFormElement) && isGetForm(event.target)) {
+      addNoReferrer(event.target);
+    }
+  };
+
+  document.addEventListener('submit', onSubmit, true);
+  document.addEventListener('formdata', onSubmit, true);
+}
+
+/**
+ * Makes the pagination links of the search containers of the page send no
+ * Referer header, the same as the forms (see addNoReferrerToGetForms),
+ * since the URL of the current page can be long enough that the request
+ * is too large for the server. A pagination link is a link in a page
+ * iterator (the page and items per page menus, and the first, previous,
+ * next and last links), or a link to a page or a number of items per page
+ * of a list (the cur and delta parameters). The links of the page get it
+ * when the page is ready, and a link that the portlet adds later (for
+ * example when it renders a menu again) gets it when it is clicked,
+ * before the browser follows it.
+ */
+
+function addNoReferrerToPaginationLinks(): void {
+  var paginationPattern = new RegExp('[?&]' + ns + '(cur|delta)=');
+
+  var isPaginationLink = function (link: HTMLAnchorElement) {
+    return !!link.closest('.taglib-page-iterator, .lfr-pagination') || paginationPattern.test(link.href);
+  };
+
+  var addNoReferrer = function (link: HTMLAnchorElement) {
+    var rel = (link.getAttribute('rel') || '').split(/\s+/).filter(function (value) {
+      return value != '';
+    });
+
+    if (rel.indexOf('noreferrer') == -1) {
+      rel.push('noreferrer');
+      link.setAttribute('rel', rel.join(' '));
+    }
+
+    link.setAttribute('referrerpolicy', 'no-referrer');
+  };
+
+  Array.from(document.querySelectorAll('a[href]')).forEach(function (link) {
+    if (isPaginationLink(<HTMLAnchorElement> link)) {
+      addNoReferrer(<HTMLAnchorElement> link);
+    }
+  });
+
+  var onActivate = function (event: Event) {
+    var link = <HTMLAnchorElement | null> ((event.target instanceof Element) ? event.target.closest('a[href]') : null);
+
+    if (link && isPaginationLink(link)) {
+      addNoReferrer(link);
+    }
+  };
+
+  ['mousedown', 'click', 'auxclick'].forEach(function (type) {
+    document.addEventListener(type, onActivate, true);
+  });
+}
+
+/**
+ * Returns the parameters of the query string of the current page.
+ */
+
+function getPageParameters(): URLSearchParams {
+  return new URLSearchParams(document.location.search);
+}
+
+/**
  * Shorthand for fetching an element with a namespaced ID.
  */
 
@@ -142,15 +362,6 @@ function replaceNode(
 }
 
 /**
- * Returns a link to the build.
- */
-
-function getBuildLink(buildId: string | number) : string {
-  return '<a class="nowrap" href="https://patcher.liferay.com/group/guest/patching/-/osb_patcher/builds/' +
-    buildId + '" target="_blank">' + buildId + '</a>';
-}
-
-/**
  * Returns a link to the ticket.
  */
 
@@ -175,7 +386,6 @@ function getTicketLink(
     var params = {
       advancedSearch: true,
       andOperator: true,
-      hideOldFixVersions: true,
       patcherFixName: ticket,
       patcherProductVersionId: productVersionId,
       patcherProjectVersionIdFilter: projectVersionId
@@ -300,13 +510,6 @@ function updateSpinner(step: number = 1) {
     if (spinnerProgress) {
         spinnerProgress.textContent = `${spinnerCurrent}/${spinnerMax}`;
     }
-}
-
-/**
- * Updates the spinner progress (alias of updateSpinner)
- */
-function updateSpinnerProgress(step: number = 1) {
-    updateSpinner(step);
 }
 
 /**
