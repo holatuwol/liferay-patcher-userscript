@@ -1,35 +1,98 @@
-## Patcher Read-Only Views Links
+# Patcher Read-Only Views Links
 
-* **Loop**: https://loop.liferay.com/home/-/loop/feed/18982411
 * **Script Install**: https://raw.githubusercontent.com/holatuwol/liferay-faster-deploy/master/userscripts/patcher.user.js
 * **Source**: https://github.com/holatuwol/liferay-patcher-userscript
 
-When working with existing fixes and builds, the script does the following:
+A browser user script for [patcher.liferay.com](https://patcher.liferay.com) that provides inline search panels, build and fix comparison tools, Jira and GitHub integrations, bulk search capabilities, and user interface modifications.
 
-* When viewing an existing fix or build, I often want to know when it was added/updated, to get a sense of whether it was added recently, but the dates are all in GMT, and I'm bad at daylight savings. So, the script changes the create dates and modified dates listed for fixes and builds to whatever your web browser thinks is your current time zone, instead of showing the date in GMT.
+---
 
-* When viewing an existing fix or build, I sometimes want to go directly to JIRA to know what the fixes were attempting to resolve (not always obvious from the commit history). Therefore, rather than a read-only input field giving you a list of fixes in plain text, the script replaces that with a hidden input field, but the UI shows you a bunch of links to JIRA instead of plain text ticket IDs.
+## Features
 
-* When viewing an existing build, I'm often looking at something that has both public and private fixes, and the git link is not very useful since it'll just contain one or the other, and you have to navigate to the "View Child Builds" button and click on each build to get more information. Therefore, this script presents that information immediately rather than ask you to navigate to each build separately.
+### Viewing Existing Fixes and Builds
 
-* When viewing an existing build, I often want to navigate to a list of all of that customer's builds, often to see if there is a more up to date build with more fixes, or if the customer has moved to a new baseline. Therefore, the script replaces the plain text account code with a link to a list of all of the customer's builds.
+* **Local Timezone Dates**: Converts GMT/UTC create, modified, and status dates to the browser's local timezone.
+* **Jira Ticket Links**: Replaces plain text fix ticket IDs (LPE, LPS, LPD, etc.) with links to Jira tickets, sorted numerically.
+* **LESA & Zendesk Links**: Replaces read-only customer and support ticket IDs with links to Jira.
+* **Inline Child Builds & Git Hash Links**:
+  * For legacy 7.x builds with public and private child builds, displays those builds inline on build detail pages without navigating to "View Child Builds".
+  * Generates direct GitHub compare links (`liferay-portal-ee/compare/<baseTag>...fix-pack-fix-<patcherFixId>`) for each child build tag, indicating the active build tag.
+  * Formats excluded fixes from the original build with strikethrough styling (`included-in-baseline`).
+* **Quarterly Release Patch Verification**: For quarterly release baselines (`.q`), adds a link to Jira to search whether fixes are included in newer patch levels of the quarterly release.
+* **GitHub Repository & Compare Links**:
+  * Replaces the read-only branch name (`committish`) with a GitHub compare link against the baseline tag.
+  * Replaces the git remote URL with a link to the GitHub repository.
+  * Links the read-only project version to the corresponding tag tree on GitHub (`liferay-portal-ee/tree/<tag>`).
+* **Engineer Comments**: Fetches and displays "Engineer Comments" from the build's comments edit page directly on the build view page.
+* **Hotfix Download Filenames**: Replaces generic "Download" labels for hotfix, debug, ignore, official, and sourceZip links with the target filename.
+* **Direct Jenkins Console Links**:
+  * Updates Jenkins fixpack-builder links to navigate directly to raw console output (`/consoleText`), or live console output (`/console`) if the build status is "Compiling".
+  * Rewrites hotfix builder links to point directly to build artifacts.
+  * Replaces internal `//test-5-2/` links with `//test-5-2.liferay.com/`.
+* **Fix Comparison Across Builds**: Modifies the "View Fixes" button on a build to compare fixes against the previous build (`?compareTo=`). The comparison table displays current vs. previous fix versions, visually de-emphasizes unchanged versions, and lists fixes removed since the previous build.
+* **Collapsible Ticket Suggestions**: Groups build ticket suggestions into a summary table with "(show details)" and "(hide details)" toggles.
 
-* When viewing an existing build, the links to Jenkins take you to a page which gives you a summary of the build (how long it took, etc.), but usually I'm only clicking on the link to see why the build failed. To address that, this script updates the link so that it takes you to the console output (consoleText).
+---
 
-* When viewing an existing build, it takes an extra, non-obvious click to see the QA automation testing status. The script displays the QA automation testing status right under the build link.
+### Creating New Fixes and Builds
 
-* In light of the recent security issues, I thought it would be nice to know if a customer is missing security fixes, before we deliver the fix, so we can proactively ask them whether they received the security notification and whether they would like to install it. Towards that end, I've added a "Missing Security Fixes" section below the list of fixes that are included in the build.
+* **High-Level Liferay Version Filter**: Adds a dropdown on create pages to choose from broad Liferay versions (`6.x`, `7.0`, `7.1`, `7.2`, `7.3`, `7.4`, `Quarterly`). Selecting a version automatically selects the corresponding product version (e.g., "Quarterly Releases" or "DXP 7.x") and filters out unrelated product options.
+* **Searchable Project Version Input**: Replaces project version `<select>` dropdowns with a text input backed by an HTML5 `<datalist>` autocomplete element that dynamically filters options as you type. Focusing the input clears the field to display initial options, and selecting an option updates the underlying form.
+* **Numeric Sorting & Optgroups**: Groups project versions into `<optgroup>` categories (Quarterly, Fix Pack versions, Marketplace, 6.1/6.2, 7.4.13) and sorts them numerically rather than alphabetically (e.g., 2026.q1.10 is treated as newer than 2026.q1.9).
+* **Query String & Template Auto-Population**:
+  * Automatically unchecks the "Auto Fix" checkbox when custom branch or remote URL parameters are specified, and populates product version, project version, committish, and git remote URL from query parameters (supporting "Use as Build Template") for people using the `patcher` shell script from the `holatuwol/liferay-faster-deploy` repository
+* **Previous Builds Ticket Suggestions (`/builds/create`)**:
+  * Fetches previous builds for the specified account and project version.
+  * Detects fixes included in previous builds that are missing from the current draft.
+  * Lists missing tickets with links and their prior hotfix/build numbers.
+  * Provides a "+" button to append missing tickets into the build name input.
+  * Prompts for confirmation before submitting if tickets from previous builds are missing.
 
-When adding new fixes and builds, the script does the following:
+---
 
-* When creating a new fix or build, the large number of options in that single product version drop down feels clunky. To address that, I've added a new drop down to choose from a much shorter list of Liferay versions, and auto-selects the "DXP 7.x" product version equivalent. Once this has been auto-selected, updates the sort order of the project versions (baselines) to be in numeric order (1, 2, 3), rather than alphabetical order (1, 10, 11, ..., 2, 20, 21, ..., 3) to make it easier to find the latest baseline.
+### Account Builds View (`/accounts/view`)
 
-* When creating a new build using the "Use as Build Template", Patcher doesn't automatically select the project version (only the product version), which can get disorienting since we have a large number of project versions. To make "Use as Build Template" more usable, the script updates the link so that the script knows how to auto-select the project version.
+* **Build Content Comparison**: Adds a "Content (comparison)" selector to the builds table header to diff each build's fixes against:
+  * The closest parent build containing a subset of the fixes on the same project version ("most similar build"), or
+  * Any specific build baseline selected from the dropdown.
+* **Diff Highlighting**: Highlights newly added fixes and displays missing or omitted fixes with strikethrough styling (`included-in-baseline`).
 
-Some additional visual tweaks include the following:
+---
 
-* The script adds color-coding to the list of QA builds so that they are visually grouped by version, since it can be easier to test multiple builds of the same version rather than switch between versions all the time.
+### Search & List Views
 
-* Since we've added the marketplace feature to patcher, all of the drop-down selects are way too small to show tag names and application names, so this script adds a style to remove the fixed width of 200 pixels on the product and project selects.
+* **Inline Advanced Search Panel**:
+  * Replaces the default search popover with an inline search panel on list pages (such as Fixes and Account Builds).
+  * Positions primary search fields (Account, Fix/Build Name, Project Version, Status) directly on the page with a "Search" button.
+  * Moves secondary options (Type, Match All/Any, Hide Old Fix Versions, etc.) into an expandable "More options" section.
+  * Provides a toggle between Basic Search and Advanced Search while synchronizing search terms.
+* **Clickable Column Filters**: In search result tables, converts values in the "Project Version" and "Product" columns into links that filter the list by that version or product.
+* **Fixes Search Keyword Synchronization**: When a project version is selected, basic keyword searches are submitted as an advanced search by fix name.
+* **URL & Query String Optimization**:
+  * Intercepts GET form submissions to strip empty fields and default parameter values (e.g., `hideOldFixVersions=true`), keeping URLs within browser and server size limits.
+  * Enforces `no-referrer` and `referrerpolicy="no-referrer"` on GET forms and pagination links to prevent HTTP 431 ("Request Header Fields Too Large") errors caused by long referrer URLs.
 
-* Because I've needed to investigate UI bugs involving modal dialog windows, I don't like modal dialog windows that do more than show me a full-sized image, so the script replaces many of the modal dialog windows in patcher portal with regular pop up windows.
+---
+
+### Bulk Search Tab (Fixes List)
+
+Adds a **Bulk Search** tab to the Fixes page:
+* **Multi-Ticket Lookup**: Search for multiple Jira tickets (LPD, LPE, LPS, LPSA, COMMERCE, LSV) or CVE / PRISMA IDs separated by commas or newlines.
+* **CVE Synonym Resolution**: Translates CVE and PRISMA vulnerability identifiers into corresponding LPE tickets using an external security issue dataset.
+* **Baseline Availability**: Queries Patcher to list all project version baselines that contain fixes for the provided tickets, with direct links to search results.
+* **Jira Security & Release Status (Optional)**:
+  * Evaluates tickets against a selected quarterly release baseline prefix (e.g. `2024.q1`) and specific target version.
+  * Queries the Jira API to determine whether each ticket is Fixed or Not Fixed in the baseline, displaying the target fix version and whether it was fixed in a future release.
+  * Resolves vulnerability severity (`sev-1`, `sev-2`, `sev-3`) based on linked LSV tickets, Jira labels, and issue priority.
+
+---
+
+### QA Builds & General UI Tweaks
+
+* **Color-Coded QA Builds**: Color-codes rows in the "QA Builds" tab based on Liferay version (6210, 7010, 7110, 7210) and sets pagination to 200 items (`delta=200`).
+* **QA Analysis Sorting**: Highlights builds requiring "QA Analysis" and dims and reorders unneeded builds to the bottom of the table.
+* **Modal Dialogs to Browser Windows**: Replaces modal popup dialogs (`Liferay.Patcher.openWindow`) with standard browser tabs/windows (`window.open(..., '_blank')`).
+* **Form & Table Styling**:
+  * Removes fixed 200px width constraints on product and project version select menus.
+  * Widens ticket input and suggestion textareas.
+  * Formats form rows into two-column CSS grids to align labels and inputs without horizontal overflow.
