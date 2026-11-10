@@ -166,8 +166,14 @@ function addProductVersionFilter() : void {
   liferayVersionSelect.addEventListener('change', updateProductVersionSelect);
   productVersionSelect.addEventListener('change', setTimeout.bind(null, updateProjectVersionOrder, 500));
 
-  var productVersionSelectParentElement = <HTMLElement> productVersionSelect.parentElement;
-  productVersionSelectParentElement.insertBefore(liferayVersionSelect, productVersionSelect);
+  // Keep the two product selects on one line of the form row grid.
+
+  var productVersionContainer = document.createElement('span');
+  productVersionContainer.classList.add('patcher-inline-fields');
+
+  (<HTMLElement> productVersionSelect.parentElement).insertBefore(productVersionContainer, productVersionSelect);
+  productVersionContainer.appendChild(liferayVersionSelect);
+  productVersionContainer.appendChild(productVersionSelect);
 
   if (hadSelectedVersion && selectedVersion) {
     productVersionSelect.setAttribute('data-liferay-version', selectedVersion);

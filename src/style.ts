@@ -104,6 +104,13 @@ th.branch-type a {
   margin: 0 !important;
 }
 
+.patcher-inline-fields {
+  align-items: center;
+  column-gap: 5px;
+  display: inline-flex;
+  flex-wrap: wrap;
+}
+
 .patcher-form-row > textarea {
   box-sizing: border-box;
 }
