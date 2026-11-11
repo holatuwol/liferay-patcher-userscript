@@ -11,9 +11,10 @@ a.included-in-baseline:hover {
   white-space: nowrap;
 }
 
+#_1_WAR_osbpatcherportlet_liferayVersion,
 #_1_WAR_osbpatcherportlet_patcherProductVersionId,
 #_1_WAR_osbpatcherportlet_patcherProjectVersionId {
-  width: auto;
+  width: fit-content;
 }
 
 textarea[inputcssclass="osb-patcher-input-wide"],
