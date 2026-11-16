@@ -1,5 +1,58 @@
 var pastTicketsCache = <Record<string, Record<string, string[]>>> {};
 
+/**
+ * Returns a map from the column names of the builds table (the suffix of the
+ * header IDs, such as "build-id" or "project-version") to their cell index,
+ * so that the columns can be found even when new columns are added.
+ */
+
+function getBuildsColumnIndices(root: ParentNode) : Record<string, number> {
+  var headerCells = Array.from(root.querySelectorAll('#' + ns + 'patcherBuildsSearchContainer thead th'));
+  var prefix = 'patcherBuildsSearchContainer_col-';
+
+  return headerCells.reduce((acc: Record<string, number>, next: Element, index: number) => {
+    var pos = next.id.indexOf(prefix);
+
+    if (pos != -1) {
+      acc[next.id.substring(pos + prefix.length)] = index;
+    }
+
+    return acc;
+  }, {});
+}
+
+/**
+ * Returns the cell of the given row for the named column, or null if the
+ * column is not present.
+ */
+
+function getBuildsCell(
+  row: HTMLTableRowElement,
+  columns: Record<string, number>,
+  name: string
+) : HTMLTableCellElement | null {
+
+  var index = columns[name];
+
+  return (index === undefined) ? null : (row.cells[index] || null);
+}
+
+/**
+ * Returns the trimmed text of the given row for the named column, or an
+ * empty string if the column is not present.
+ */
+
+function getBuildsCellText(
+  row: HTMLTableRowElement,
+  columns: Record<string, number>,
+  name: string
+) : string {
+
+  var cell = getBuildsCell(row, columns, name);
+
+  return cell ? (cell.textContent || '').trim() : '';
+}
+
 function getHotfixShortNames(hotfixes: string[]) : string[] {
   debugger;
   return hotfixes.map(it => {
@@ -149,26 +202,36 @@ function updateFixesFromPreviousBuilds(
     var container = document.implementation.createHTMLDocument().documentElement;
     container.innerHTML = xhr.responseText;
 
-    pastTicketsCache[accountBuildsURL] = Array.from(container.querySelectorAll('td > a[title]')).
+    var columns = getBuildsColumnIndices(container);
+
+    var contentLinks = <HTMLAnchorElement[]> Array.from(container.querySelectorAll('#' + ns + 'patcherBuildsSearchContainer tbody tr')).
+      map((row: HTMLTableRowElement) => {
+        var contentCell = getBuildsCell(row, columns, 'content');
+        return contentCell ? contentCell.querySelector('a[title]') : null;
+      }).
+      filter(it => it != null);
+
+    pastTicketsCache[accountBuildsURL] = contentLinks.
       reduce((acc: Record<string, string[]>, next: HTMLAnchorElement) => {
         var row = <HTMLTableRowElement> next.closest('tr');
-        if ((row.cells[2].textContent || '').trim().toLowerCase() == 'ignore') {
+        if (getBuildsCellText(row, columns, 'type').toLowerCase() == 'ignore') {
           return acc;
         }
-        if ((row.cells[7].textContent || '').trim().toLowerCase().indexOf('conflict') != -1) {
+        var patcherStatus = getBuildsCellText(row, columns, 'patcher-status').toLowerCase();
+        if (patcherStatus.indexOf('conflict') != -1) {
           return acc;
         }
-        if ((row.cells[7].textContent || '').trim().toLowerCase().indexOf('failed') != -1) {
+        if (patcherStatus.indexOf('failed') != -1) {
           return acc;
         }
-        if ((row.cells[9].textContent || '').trim().toLowerCase().indexOf('ignore') != -1) {
+        if (getBuildsCellText(row, columns, 'engineer-comments').toLowerCase().indexOf('ignore') != -1) {
           return acc;
         }
 
-        var hotfixId = (row.cells[12].textContent || '').trim();
+        var hotfixId = getBuildsCellText(row, columns, 'hotfix');
 
         if (hotfixId == '') {
-          hotfixId = 'build-' + (row.cells[1].textContent || '').trim();
+          hotfixId = 'build-' + getBuildsCellText(row, columns, 'build-id');
         }
 
         var newTickets = (next.getAttribute('title') || '').split(/\s*,\s*/g);
@@ -246,9 +309,9 @@ function getFixesFromPreviousBuilds() : Element {
   return previousBuildsContainer;
 }
 
-function getBuildLabel(row: HTMLTableRowElement) : string {
-  return (row.cells[12].textContent || '').trim() ||
-    (row.cells[7].textContent || '').toLowerCase() + ' build ' + (row.cells[1].textContent || '').trim();
+function getBuildLabel(row: HTMLTableRowElement, columns: Record<string, number>) : string {
+  return getBuildsCellText(row, columns, 'hotfix') ||
+    getBuildsCellText(row, columns, 'patcher-status').toLowerCase() + ' build ' + getBuildsCellText(row, columns, 'build-id');
 }
 
 function getClosestBuildParentIndices(
@@ -292,6 +355,7 @@ function createFixItemElement(ticket: string, includedInBaseline: boolean) : HTM
 }
 
 function renderBuildComparisons(
+  columns: Record<string, number>,
   contentRows: HTMLTableRowElement[],
   contentCells: HTMLTableCellElement[],
   fixes: Set<string>[],
@@ -326,14 +390,14 @@ function renderBuildComparisons(
 
       if (projectVersions[index] != projectVersions[parent]) {
         shortContentElement.appendChild(document.createTextNode(
-          'comparison not possible (project version differs from ' + getBuildLabel(contentRows[parent]) + ')'
+          'comparison not possible (project version differs from ' + getBuildLabel(contentRows[parent], columns) + ')'
         ));
 
         element.append(shortContentElement);
         return;
       }
 
-      shortContentElement.appendChild(document.createTextNode(getBuildLabel(contentRows[parent])));
+      shortContentElement.appendChild(document.createTextNode(getBuildLabel(contentRows[parent], columns)));
 
       Array.from(fixes[index]).filter(it => !fixes[parent].has(it)).forEach(it => {
         shortContentElement.appendChild(createFixItemElement(it, false));
@@ -358,10 +422,17 @@ async function updatePreviousBuildsContent() : Promise<void> {
 
   var contentHeader = await waitForElement('patcherBuildsSearchContainer_col-content');
 
-  var contentRows = <HTMLTableRowElement[]> Array.from(buildsContainer.querySelectorAll('tbody tr'));
+  var columns = getBuildsColumnIndices(document);
+
+  if ((columns['content'] === undefined) || (columns['project-version'] === undefined)) {
+    return;
+  }
+
+  var contentRows = (<HTMLTableRowElement[]> Array.from(buildsContainer.querySelectorAll('tbody tr'))).
+    filter((row: HTMLTableRowElement) => getBuildsCell(row, columns, 'content') != null);
 
   var contentCells = contentRows.map(
-    (element: HTMLTableRowElement) => element.cells[6]
+    (element: HTMLTableRowElement) => <HTMLTableCellElement> getBuildsCell(element, columns, 'content')
   );
 
   var fixes = contentCells.map(
@@ -372,7 +443,7 @@ async function updatePreviousBuildsContent() : Promise<void> {
   });
 
   var projectVersions = contentRows.map(
-    (row: HTMLTableRowElement) => (row.cells[5].textContent || '').trim()
+    (row: HTMLTableRowElement) => getBuildsCellText(row, columns, 'project-version')
   );
 
   var baselineLabel = document.createElement('label');
@@ -390,15 +461,15 @@ async function updatePreviousBuildsContent() : Promise<void> {
   contentRows.forEach((row: HTMLTableRowElement, index: number) => {
     var buildOption = document.createElement('option');
     buildOption.value = '' + index;
-    buildOption.textContent = getBuildLabel(row);
+    buildOption.textContent = getBuildLabel(row, columns);
     baselineSelect.appendChild(buildOption);
   });
 
   baselineSelect.addEventListener('change', function() {
-    renderBuildComparisons(contentRows, contentCells, fixes, projectVersions, baselineSelect.value);
+    renderBuildComparisons(columns, contentRows, contentCells, fixes, projectVersions, baselineSelect.value);
   });
 
   contentHeader.appendChild(baselineSelect);
 
-  renderBuildComparisons(contentRows, contentCells, fixes, projectVersions, baselineSelect.value);
+  renderBuildComparisons(columns, contentRows, contentCells, fixes, projectVersions, baselineSelect.value);
 }
