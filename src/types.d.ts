@@ -8,6 +8,9 @@ interface Liferay {
     authToken: string;
     fire: (string) => void;
     on: (string, Function) => void;
+    Poller?: {
+        suspend: () => void;
+    };
 }
 
 interface BuildMetadata {

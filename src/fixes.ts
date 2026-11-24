@@ -71,6 +71,21 @@ function layoutFormRows(): void {
   }
 }
 
+/**
+ * Returns whether the given element, or any of its ancestors up to (but
+ * not including) the given container, is hidden with display: none.
+ */
+
+function isHiddenWithin(element: Element, container: Element) : boolean {
+  for (var node : Element | null = element; node && node != container; node = node.parentElement) {
+    if (getComputedStyle(node).display == 'none') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function rearrangeColumns() : void {
   if (document.location.pathname.indexOf('/-/osb_patcher/builds/') == -1) {
     return;
@@ -120,6 +135,15 @@ function rearrangeColumns() : void {
 
     for (var j = 0; j < controlGroups.length; j++) {
       controlGroup = controlGroups[j];
+
+      // Patcher renders some suggestion fields (such as security and
+      // regression) inside a hidden wrapper. Moving them out of that
+      // wrapper would reveal them, so leave them to be removed along
+      // with the column.
+
+      if (isHiddenWithin(controlGroup, columns[i])) {
+        continue;
+      }
 
       controlGroup.classList.add('verbose');
       tableContainer.appendChild(controlGroup);

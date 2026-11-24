@@ -1,5 +1,7 @@
 // Run all the changes we need to the page.
 
+suspendLiferayPoller();
+
 var applyPatcherCustomizations = function() {
   removeEmptyGetFormFields();
   setNoReferrerPolicy();

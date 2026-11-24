@@ -27,6 +27,7 @@
     "src/comments.ts",
     "src/previous_builds.ts",
     "src/bulk_search.ts",
+    "src/poller.ts",
     "src/main.ts"
   ]
 }

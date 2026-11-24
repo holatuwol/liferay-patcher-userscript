@@ -54,7 +54,6 @@ function getBuildsCellText(
 }
 
 function getHotfixShortNames(hotfixes: string[]) : string[] {
-  debugger;
   return hotfixes.map(it => {
     return (it.indexOf('.q') != -1) ?
       it.substring(it.indexOf('-hotfix') + 1, it.length - 4) :
