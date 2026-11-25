@@ -43,10 +43,7 @@ interface JiraFields {
   versions?: Array<{ name: string }>;
   fixVersions?: Array<{ name: string }>;
   issuelinks?: Array<{ inwardIssue?: { key: string }, outwardIssue?: { key: string } }>;
-  customfield_10786?: { value?: string, id?: string } | Array<{ value?: string, id?: string }>;
   customfield_10886?: Array<{ name: string }> | { name?: string };
-  priority?: { name?: string, id?: string } | Array<{ name?: string, id?: string }>;
-  labels?: string[] | Array<{ name?: string, value?: string }>;
 }
 
 interface JiraIssue {
@@ -63,6 +60,5 @@ interface JiraSearchRequest extends XMLHttpRequest {
 }
 
 interface JiraSecurityStatus {
-  severity: string;
   fixVersions: string[];
 }

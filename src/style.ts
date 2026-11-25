@@ -212,18 +212,102 @@ tr.qa-analysis-unneeded {
   white-space: nowrap;
 }
 
-.bulk-search-status-fixed {
-  color: #0056b3;
+/* Badges matching lsv_checker.html, scoped so they don't collide with the
+   portal's own Bootstrap label styles */
+.bulk-search-table .label {
+  border-radius: 0.25em;
+  color: #fff;
+  display: inline;
+  font-size: 75%;
   font-weight: bold;
+  padding: 0.2em 0.6em 0.3em;
+  text-shadow: none;
+  white-space: nowrap;
 }
 
-.bulk-search-status-not-fixed {
-  color: #d35400;
-  font-weight: bold;
+.bulk-search-table .label-danger { background-color: #d9534f; }
+.bulk-search-table .label-default { background-color: #777; }
+.bulk-search-table .label-success { background-color: #5cb85c; }
+
+/* Available on Baselines: one line per release line, with a square for
+   each patch level in it */
+.bulk-search-line {
+  align-items: center;
+  display: flex;
+  gap: 0.5em;
+  margin: 0.15em 0;
 }
 
-.bulk-search-status-na {
+.bulk-search-line-name {
+  flex: 0 0 4.5em;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.bulk-search-squares {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.bulk-search-square {
+  background-color: #e4e4e4;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+}
+
+.bulk-search-square-hotfix {
+  background-color: #337ab7;
+  border-color: #2e6da4;
+}
+
+.bulk-search-square-released {
+  background-color: #5cb85c;
+  border-color: #4cae4c;
+}
+
+.bulk-search-square-affected {
+  background-color: #d9534f;
+  border-color: #d43f3a;
+}
+
+a.bulk-search-square:hover {
+  opacity: 0.7;
+}
+
+.bulk-search-square-selected {
+  outline: 2px solid #f0ad4e;
+  outline-offset: 1px;
+}
+
+.bulk-search-line-summary .bulk-search-status-text {
+  display: inline;
+  margin-top: 0;
+}
+
+.bulk-search-legend {
+  color: #555;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: smaller;
+  gap: 0.4em 1.25em;
+  margin-top: 15px;
+}
+
+.bulk-search-line-count {
   color: #777;
+  font-size: smaller;
+  white-space: nowrap;
+}
+
+/* Puts the fix versions or reason on its own line below the badge */
+.bulk-search-status-text {
+  display: block;
+  margin-top: 0.3em;
+  font-size: smaller;
 }
 
 /* Search panel of the lists (see enhanceSearchToggle) */

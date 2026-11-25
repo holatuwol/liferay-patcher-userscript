@@ -47,8 +47,11 @@ var applyPatcherCustomizations = function() {
 
     if (activeTabName == 'Fixes') {
       addKeywordsProjectVersionFilter();
-      addBulkSearchTab();
     }
+  }
+
+  if (activeTabName) {
+    addBulkSearchTab();
   }
 
   // Runs after addProductVersionFilter, since on the create fix page
